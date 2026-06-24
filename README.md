@@ -30,4 +30,5 @@ Since there's no backend or build step, running this is as easy as it gets:
 
 ---
 
-*Created by Arpit Singh  Licensed under MIT.*
+*Created by Arpit Singh 
+Licensed under MIT.*
