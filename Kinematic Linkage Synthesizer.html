@@ -1,0 +1,1992 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Burmester Theory - Master Synthesis Suite</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap');
+
+        :root {
+            --bg-color: #121212;
+            --canvas-bg: #1e1e1e;
+            --sidebar-bg: #252526;
+            --text-main: #f0f0f0;
+            --text-muted: #aaa;
+            --accent-active: #00e5ff;
+            --accent-done: #00e676;
+            --border-color: #444;
+        }
+        body { margin: 0; padding: 0; font-family: 'Montserrat', sans-serif; background-color: var(--bg-color); color: var(--text-main); overflow: hidden; }
+
+        /* Unified Layout Containers */
+        .app-container { display: flex; height: 100vh; width: 100vw; }
+        .sidebar { width: 380px; background-color: var(--sidebar-bg); padding: 20px 20px 0 20px; box-sizing: border-box; border-right: 1px solid var(--border-color); display: flex; flex-direction: column; z-index: 10; height: 100vh; }
+        
+        .mode-container { display: flex; gap: 5px; margin-bottom: 15px; flex-shrink: 0; }
+        .mode-btn { background-color: #444; color: #aaa; padding: 8px 5px; border: none; cursor: pointer; flex: 1; font-weight: bold; font-size: 0.85rem; border-radius: 4px; transition: 0.3s; font-family: 'Montserrat', sans-serif;}
+        .mode-btn.active { background-color: var(--accent-active); color: #000; box-shadow: 0 0 10px rgba(0, 229, 255, 0.4); }
+
+        h2 { margin-top: 0; font-size: 1.2rem; flex-shrink: 0; color: #fff; }
+        
+        .steps-container { flex: 1; overflow-y: auto; padding-right: 5px; margin-bottom: 10px; }
+        .step { padding: 10px; margin-bottom: 8px; border-radius: 6px; background-color: #2d2d2d; border: 1px solid var(--border-color); opacity: 0.5; transition: all 0.3s; color: var(--text-muted); }
+        .step.active { opacity: 1; border-color: var(--accent-active); box-shadow: 0 0 8px rgba(0, 229, 255, 0.4); border-left: 5px solid var(--accent-active); color: var(--text-main); background-color: #333; }
+        .step.done { opacity: 0.8; border-left: 5px solid var(--accent-done); color: #ddd; }
+        .step-title { font-weight: bold; margin-bottom: 5px; }
+        .step-desc { font-size: 0.85rem; }
+        
+        .controls { flex-shrink: 0; display: flex; flex-direction: column; gap: 10px; padding-top: 15px; padding-bottom: 20px; border-top: 2px solid var(--border-color); background-color: var(--sidebar-bg); }
+        
+        .btn-group { display: flex; gap: 10px; }
+        button { padding: 10px; cursor: pointer; border: none; border-radius: 4px; background-color: #555; color: white; font-family: 'Montserrat', sans-serif; font-weight: 600; flex: 1; transition: background-color 0.2s; }
+        button:hover { background-color: #666; }
+        .btn-next { background-color: #00b0ff; color: #000; }
+        .btn-next:hover { background-color: #40c4ff; }
+        .btn-toggle-const { background-color: #b388ff; color: #000; display: none; }
+        .btn-toggle-const:hover { background-color: #d1c4e9; }
+        
+        .slider-group { display: none; flex-direction: column; background: #2d2d2d; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); gap: 5px; }
+        .slider-group label { color: var(--text-main); font-size: 0.85rem; font-weight: bold; }
+        .slider-group input[type="range"] { margin-bottom: 5px; width: 100%;}
+
+        .cfg-btn { background-color: #444; color: #eee; padding: 6px; font-size: 0.85rem; border: 1px solid #666; border-radius: 4px; cursor: pointer; flex: 1; font-weight: bold; text-align: center; }
+        .cfg-btn:hover:not(:disabled) { background-color: #555; }
+        .cfg-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+        .config-circuit-check { font-size: 0.85rem; font-weight: bold; margin-top: 8px; text-align: center; display: none; }
+
+        .main-content { flex: 1; display: flex; flex-direction: column; position: relative; }
+        
+        .view-hints { position: absolute; top: 10px; right: 10px; background: rgba(30, 30, 30, 0.8); padding: 5px 10px; border-radius: 4px; font-size: 0.8rem; color: #ccc; pointer-events: none; border: 1px solid #444; z-index: 5; }
+
+        .zoom-widget { position: absolute; bottom: 30px; left: 30px; background: rgba(40, 40, 40, 0.95); padding: 15px; border-radius: 8px; border: 1px solid #555; box-shadow: 0 4px 15px rgba(0,0,0,0.5); display: flex; flex-direction: column; z-index: 100; width: 200px; }
+        .zoom-widget label { font-size: 0.85rem; font-weight: bold; color: #eee; margin:0;}
+        .btn-autofit { background-color: #00b0ff; color: #000; padding: 4px 8px; font-size: 0.75rem; border-radius: 4px; border: none; cursor: pointer; font-weight: bold; flex: 0 0 auto; }
+        .btn-autofit:hover { background-color: #40c4ff; }
+
+        .animation-palette { position: absolute; bottom: 30px; right: 30px; background: rgba(40, 40, 40, 0.95); padding: 20px; border-radius: 12px; box-shadow: 0 8px 30px rgba(0,0,0,0.6); border: 2px solid var(--accent-done); display: none; width: 280px; z-index: 100; flex-direction: column; gap: 15px; }
+        .animation-palette h3 { margin: 0; font-size: 1.1rem; color: var(--accent-done); text-align: center; }
+        .btn-play-pause { background-color: var(--accent-done); color: #000; }
+        .btn-play-pause:hover { background-color: #69f0ae; }
+        .btn-stop-anim { background-color: #ff5252; color: #fff; flex: 0.6; }
+
+        .defect-flag { display: none; font-size: 0.85rem; font-weight: bold; text-align: center; border-top: 1px solid #555; padding-top: 10px; margin-top: 5px; }
+
+        .warning-box { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); background-color: #4a0000; color: #ff8a80; padding: 15px 25px; border: 2px solid #ff5252; border-radius: 8px; font-weight: bold; box-shadow: 0 4px 15px rgba(0,0,0,0.4); display: none; z-index: 100; text-align: center; pointer-events: none; }
+
+        canvas { background-color: var(--canvas-bg); cursor: crosshair; flex: 1; display: block; width: 100%; height: 100%; }
+    </style>
+</head>
+<body>
+
+<div id="app-graphical" class="app-container">
+    <div class="sidebar">
+        <div class="mode-container">
+            <button class="mode-btn active">4-Point</button>
+            <button class="mode-btn" onclick="switchMode('graphical5')">5-Point</button>
+            <button class="mode-btn" onclick="switchMode('analytical')">Analytical</button>
+        </div>
+        <h2>Graphical Burmester</h2>
+        <div id="steps-container_g" class="steps-container"></div>
+        
+        <div class="controls">
+            <div class="slider-group" id="slider-R-group_g">
+                <label for="slider-R_g">Radius R (Step 3): <span id="val-R_g">100</span>px</label>
+                <input type="range" id="slider-R_g" min="10" max="2000" value="100">
+            </div>
+            <div class="slider-group" id="slider-r-group_g">
+                <label for="slider-r_g">Radius r (Step 4): <span id="val-r_g">100</span>px</label>
+                <input type="range" id="slider-r_g" min="10" max="2000" value="100">
+            </div>
+            
+            <div id="config-panel_g" class="slider-group" style="padding: 10px;">
+                <label style="margin-bottom: 8px; font-weight: bold;">Configurations (Aᵢ Solutions):</label>
+                <div style="display: flex; gap: 5px; margin-bottom: 5px;">
+                    <button id="btn-cfg-a1_g" class="cfg-btn">A₁: ●1 / 2</button>
+                    <button id="btn-cfg-a2_g" class="cfg-btn" disabled>A₂: ●1 / 2</button>
+                </div>
+                <div style="display: flex; gap: 5px;">
+                    <button id="btn-cfg-a3_g" class="cfg-btn">A₃: ●1 / 2</button>
+                    <button id="btn-cfg-a4_g" class="cfg-btn" disabled>A₄: ●1 / 2</button>
+                </div>
+                <div id="config-circuit-check_g" class="config-circuit-check"></div>
+            </div>
+
+            <button id="btn-next_g" class="btn-next">Next Step</button>
+            <button id="btn-toggle-const_g" class="btn-toggle-const">Hide Construction</button>
+
+            <div class="btn-group">
+                <button id="btn-back_g">Back (Undo)</button>
+                <button id="btn-reset_g">Reset All</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="main-content">
+        <div class="view-hints">Mouse wheel to Zoom • Click & Drag to Pan</div>
+        <div id="warning-box_g" class="warning-box"></div> 
+        
+        <div class="zoom-widget">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <label for="slider-zoom_g" style="margin: 0;">Zoom: <span id="val-zoom_g">100</span>%</label>
+                <button id="btn-autofit_g" class="btn-autofit">Auto Fit ⛶</button>
+            </div>
+            <input type="range" id="slider-zoom_g" min="10" max="1000" value="100">
+        </div>
+
+        <div id="animation-palette_g" class="animation-palette">
+            <h3>Kinematic Analysis</h3>
+            <div class="slider-group" style="display: flex; border: none; padding: 0;">
+                <label for="slider-speed_g">Playback Speed: <span id="val-speed_g">50</span>%</label>
+                <input type="range" id="slider-speed_g" min="1" max="100" value="50">
+            </div>
+            <div class="btn-group">
+                <button id="btn-play-pause_g" class="btn-play-pause">Play Simulation</button>
+                <button id="btn-stop-anim_g" class="btn-stop-anim">Reset</button>
+            </div>
+        </div>
+
+        <canvas id="mechCanvas_g"></canvas>
+    </div>
+</div>
+
+<div id="app-graphical-5" class="app-container" style="display: none;">
+    <div class="sidebar">
+        <div class="mode-container">
+            <button class="mode-btn" onclick="switchMode('graphical')">4-Point</button>
+            <button class="mode-btn active">5-Point</button>
+            <button class="mode-btn" onclick="switchMode('analytical')">Analytical</button>
+        </div>
+        <h2>Graphical Burmester (5-Point)</h2>
+        <div id="steps-container_g5" class="steps-container"></div>
+        
+        <div class="controls">
+            <div class="slider-group" id="step1-controls_g5" style="padding: 10px;">
+                <label style="margin-bottom: 5px;">Pair 1 (Defines L₁):</label>
+                <div style="display: flex; gap: 5px; margin-bottom: 10px;">
+                    <select id="p1a_g5" class="cfg-btn">
+                        <option value="0">C₁</option><option value="1">C₂</option><option value="2">C₃</option><option value="3">C₄</option><option value="4">C₅</option>
+                    </select>
+                    <select id="p1b_g5" class="cfg-btn">
+                        <option value="0">C₁</option><option value="1">C₂</option><option value="2">C₃</option><option value="3">C₄</option><option value="4" selected>C₅</option>
+                    </select>
+                </div>
+                <label style="margin-bottom: 5px;">Pair 2 (Defines L₂):</label>
+                <div style="display: flex; gap: 5px;">
+                    <select id="p2a_g5" class="cfg-btn">
+                        <option value="0">C₁</option><option value="1" selected>C₂</option><option value="2">C₃</option><option value="3">C₄</option><option value="4">C₅</option>
+                    </select>
+                    <select id="p2b_g5" class="cfg-btn">
+                        <option value="0">C₁</option><option value="1">C₂</option><option value="2" selected>C₃</option><option value="3">C₄</option><option value="4">C₅</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="slider-group" id="slider-alpha-group_g5">
+                <label for="slider-alpha_g5">Overlay Angle α (Step 2): <span id="val-alpha_g5">0</span>°</label>
+                <input type="range" id="slider-alpha_g5" min="-180" max="180" value="0">
+            </div>
+
+            <div class="slider-group" id="slider-r-group_g5">
+                <label for="slider-r_g5">Radius r (Step 3 & 5): <span id="val-r_g5">100</span>px</label>
+                <input type="range" id="slider-r_g5" min="10" max="2000" value="100">
+            </div>
+            
+            <div id="config-panel_g5" class="slider-group" style="padding: 10px;">
+                <label style="margin-bottom: 8px; font-weight: bold;">Configurations (Aᵢ Solutions):</label>
+                <div style="display: flex; gap: 5px; margin-bottom: 5px;">
+                    <button id="btn-cfg-ap1_g5" class="cfg-btn">A(P1): ●1 / 2</button>
+                    <button id="btn-cfg-ap2_g5" class="cfg-btn">A(P2): ●1 / 2</button>
+                </div>
+                <div style="display: flex; gap: 5px;">
+                    <button id="btn-cfg-ap3_g5" class="cfg-btn" disabled>A(P3): ●1 / 2</button>
+                </div>
+                <div id="config-circuit-check_g5" class="config-circuit-check"></div>
+            </div>
+
+            <button id="btn-next_g5" class="btn-next">Next Step</button>
+            <button id="btn-toggle-const_g5" class="btn-toggle-const">Hide Construction</button>
+
+            <div class="btn-group">
+                <button id="btn-back_g5">Back (Undo)</button>
+                <button id="btn-reset_g5">Reset All</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="main-content">
+        <div class="view-hints">Mouse wheel to Zoom • Click & Drag to Pan</div>
+        <div id="warning-box_g5" class="warning-box"></div> 
+        
+        <div class="zoom-widget">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <label for="slider-zoom_g5" style="margin: 0;">Zoom: <span id="val-zoom_g5">100</span>%</label>
+                <button id="btn-autofit_g5" class="btn-autofit">Auto Fit ⛶</button>
+            </div>
+            <input type="range" id="slider-zoom_g5" min="10" max="1000" value="100">
+        </div>
+
+        <div id="animation-palette_g5" class="animation-palette">
+            <h3>Kinematic Analysis</h3>
+            <div class="slider-group" style="display: flex; border: none; padding: 0;">
+                <label for="slider-speed_g5">Playback Speed: <span id="val-speed_g5">50</span>%</label>
+                <input type="range" id="slider-speed_g5" min="1" max="100" value="50">
+            </div>
+            <div class="btn-group">
+                <button id="btn-play-pause_g5" class="btn-play-pause">Play Simulation</button>
+                <button id="btn-stop-anim_g5" class="btn-stop-anim">Reset</button>
+            </div>
+        </div>
+
+        <canvas id="mechCanvas_g5"></canvas>
+    </div>
+</div>
+
+
+<div id="app-analytical" class="app-container" style="display: none;">
+    <div class="sidebar">
+        <div class="mode-container">
+            <button class="mode-btn" onclick="switchMode('graphical')">4-Point</button>
+            <button class="mode-btn" onclick="switchMode('graphical5')">5-Point</button>
+            <button class="mode-btn active">Analytical</button>
+        </div>
+        <h2>Analytical Burmester</h2>
+        <div id="steps-container_a" class="steps-container"></div>
+        
+        <div class="controls">
+            <div class="slider-group" id="step1-controls_a">
+                <label>φ₂ (Pos 2): <span id="val-phi2_a">15</span>°</label> <input type="range" id="sl-phi2_a" min="-180" max="180" value="15">
+                <label>φ₃ (Pos 3): <span id="val-phi3_a">30</span>°</label> <input type="range" id="sl-phi3_a" min="-180" max="180" value="30">
+                <label>φ₄ (Pos 4): <span id="val-phi4_a">45</span>°</label> <input type="range" id="sl-phi4_a" min="-180" max="180" value="45">
+            </div>
+            
+            <div class="slider-group" id="step2-controls_a">
+                <label style="color:#00e676">γ₂ (Crank Angle 2): <span id="val-gam2_a">20</span>°</label> <input type="range" id="sl-gam2_a" min="-180" max="180" value="20">
+                <button id="btn-root1_a" class="cfg-btn">Switch to Root 2 (Current: 1)</button>
+            </div>
+
+            <div class="slider-group" id="step3-controls_a">
+                <label style="color:#b388ff">γ₂' (Follower Angle 2): <span id="val-gam2p_a">45</span>°</label> <input type="range" id="sl-gam2p_a" min="-180" max="180" value="45">
+                <button id="btn-root2_a" class="cfg-btn">Switch to Root 2 (Current: 1)</button>
+            </div>
+
+            <div id="defect-flag_a" class="defect-flag" style="display:block; border:none; padding:0; margin-bottom:10px;"></div>
+
+            <button id="btn-next_a" class="btn-next">Next Step</button>
+
+            <div class="btn-group">
+                <button id="btn-back_a">Back</button>
+                <button id="btn-reset_a">Reset All</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="main-content">
+        <div class="view-hints">Mouse wheel to Zoom • Click & Drag to Pan</div>
+        <div id="warning-box_a" class="warning-box"></div> 
+        
+        <div class="zoom-widget">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <label for="slider-zoom_a" style="margin: 0;">Zoom: <span id="val-zoom_a">100</span>%</label>
+                <button id="btn-autofit_a" class="btn-autofit">Auto Fit ⛶</button>
+            </div>
+            <input type="range" id="slider-zoom_a" min="10" max="1000" value="100">
+        </div>
+
+        <div id="animation-palette_a" class="animation-palette">
+            <h3>Kinematic Analysis</h3>
+            <div class="slider-group" style="display: flex; border: none; padding: 0;">
+                <label for="slider-speed_a">Playback Speed: <span id="val-speed_a">50</span>%</label>
+                <input type="range" id="slider-speed_a" min="1" max="100" value="50">
+            </div>
+            <div class="btn-group">
+                <button id="btn-play-pause_a" class="btn-play-pause">Play Simulation</button>
+                <button id="btn-stop-anim_a" class="btn-stop-anim">Reset</button>
+            </div>
+        </div>
+
+        <canvas id="mechCanvas_a"></canvas>
+    </div>
+</div>
+
+<script>
+// --- MODE SWITCHER CONTROLLER ---
+function switchMode(mode) {
+    document.getElementById('app-graphical').style.display = (mode === 'graphical') ? 'flex' : 'none';
+    document.getElementById('app-graphical-5').style.display = (mode === 'graphical5') ? 'flex' : 'none';
+    document.getElementById('app-analytical').style.display = (mode === 'analytical') ? 'flex' : 'none';
+    window.dispatchEvent(new Event('resize'));
+}
+
+// ==========================================
+// ====== 1. GRAPHICAL 4-POINT ENGINE  ======
+// ==========================================
+(function() {
+    try {
+        const canvas = document.getElementById('mechCanvas_g');
+        const ctx = canvas.getContext('2d');
+        const warningBox = document.getElementById('warning-box_g');
+        let width, height;
+
+        let currentStep = 0;
+        let showConstruction = true;
+        let points = { C: [], HR: null, A1: null, A3: null, HC: null, A2: null, A4: null, B1: null, P2: null, P4: null };
+        let lines = { c13: { p1: null, p2: null }, a13: { p1: null, p2: null } };
+        let radii = { R: 100, r: 100 };
+        let config = { A1: 0, A2: 0, A3: 0, A4: 0 }; 
+
+        let fullCouplerCurve = []; 
+        let circuitVisited = [false, false, false, false]; 
+
+        let transform = { x: 0, y: 0, k: 1 };
+        let isPanning = false, hasMoved = false, startPan = { x: 0, y: 0 };
+        let isDraggingHR = false, isDraggingHC = false;
+
+        let anim = { initialized: false, playing: false, reqId: null, angle: 0, speedMult: 0.025, dir: 1, lastB: null, path: [], lengths: {}, A_current: null, B_current: null, C_current: null };
+
+        const stepsInfo = [
+            { title: "SETUP", desc: "Click to place 4 precision points (Coupler path): C₁, C₂, C₃, C₄. Then click Next." },
+            { title: "STEP 1: Mid-normal C₁C₃", desc: "Perpendicular bisector c₁₃ computed automatically." },
+            { title: "STEP 2: Choose H_R (Ground Pivot)", desc: "Click anywhere on the dashed line c₁₃ to place the fixed ground pivot H_R. Then click Next." },
+            { title: "STEP 3: Arc from H_R", desc: "Adjust slider R to set radius from H_R. Click 'Next'." },
+            { title: "STEP 4: Find A₁ and A₃", desc: "Adjust slider r. Intersections yield A₁, A₃. Click 'Next'." },
+            { title: "STEP 5: Mid-normal A₁A₃", desc: "Bisector a₁₃ computed automatically. Verifying it passes through H_R." },
+            { title: "STEP 6: Choose H_C (Ground Pivot)", desc: "Click on line a₁₃ to place the fixed crank pivot H_C. Then click Next." },
+            { title: "STEP 7: Crank Circle", desc: "Crank circle drawn automatically." },
+            { title: "STEP 8: Find A₂ and A₄", desc: "Using center C₂ and C₄ with radius r to find A₂, A₄ on crank circle." },
+            { title: "STEP 9: Coupler Edges", desc: "Coupler edges (Cᵢ to Aᵢ) drawn." },
+            { title: "STEP 10: Inversion on Follower", desc: "Locate Point 2 & 4 such that △CᵢAᵢH_R ≅ △C₁A₁Pᵢ" },
+            { title: "STEP 11: Locate Rocker Tip B₁", desc: "Draw perpendicular bisectors of lines H_R-2 and H_R-4. Their intersection is B₁." },
+            { title: "STEP 12: Final Mechanism", desc: "B₁ is the rocker tip. <br><br><b>💡 INTERACTIVE: Click and drag H_R or H_C along constraint lines!</b>" }
+        ];
+
+        function dist(p1, p2) { return Math.hypot(p2.x - p1.x, p2.y - p1.y); }
+        function midpoint(p1, p2) { return { x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2 }; }
+        function perpBisector(p1, p2, length = 5000) {
+            const mid = midpoint(p1, p2); const dx = p2.x - p1.x; const dy = p2.y - p1.y; const len = Math.hypot(dx, dy);
+            if (len === 0) return null; return { p1: { x: mid.x + (-dy/len) * length, y: mid.y + (dx/len) * length }, p2: { x: mid.x - (-dy/len) * length, y: mid.y - (dx/len) * length } };
+        }
+        function projectPointOnLine(p, lineStart, lineEnd) {
+            const l2 = Math.pow(dist(lineStart, lineEnd), 2); if (l2 === 0) return lineStart;
+            const t = ((p.x - lineStart.x) * (lineEnd.x - lineStart.x) + (p.y - lineStart.y) * (lineEnd.y - lineStart.y)) / l2;
+            return { x: lineStart.x + t * (lineEnd.x - lineStart.x), y: lineStart.y + t * (lineEnd.y - lineStart.y) };
+        }
+        function circleIntersection(center1, r1, center2, r2) {
+            let d = dist(center1, center2); if (d > r1 + r2 || d < Math.abs(r1 - r2) || d === 0) return []; 
+            let a = (r1*r1 - r2*r2 + d*d) / (2*d); let h = Math.sqrt(Math.max(0, r1*r1 - a*a));
+            let p2 = { x: center1.x + a * (center2.x - center1.x) / d, y: center1.y + a * (center2.y - center1.y) / d };
+            return [ { x: p2.x + h * (center2.y - center1.y) / d, y: p2.y - h * (center2.x - center1.x) / d }, { x: p2.x - h * (center2.y - center1.y) / d, y: p2.y + h * (center2.x - center1.x) / d } ];
+        }
+        function rigidTransform(p, frameP1, frameP2, targetP1, targetP2) {
+            let angleFrame = Math.atan2(frameP2.y - frameP1.y, frameP2.x - frameP1.x); let angleTarget = Math.atan2(targetP2.y - targetP1.y, targetP2.x - targetP1.x);
+            let deltaAngle = angleTarget - angleFrame; let vx = p.x - frameP1.x; let vy = p.y - frameP1.y;
+            let rx = vx * Math.cos(deltaAngle) - vy * Math.sin(deltaAngle); let ry = vx * Math.sin(deltaAngle) + vy * Math.cos(deltaAngle);
+            return { x: targetP1.x + rx, y: targetP1.y + ry };
+        }
+        function circumcenter(p1, p2, p3) {
+            let d = 2 * (p1.x * (p2.y - p3.y) + p2.x * (p3.y - p1.y) + p3.x * (p1.y - p2.y)); if (Math.abs(d) < 1e-5) return null; 
+            let ux = ((p1.x*p1.x + p1.y*p1.y) * (p2.y - p3.y) + (p2.x*p2.x + p2.y*p2.y) * (p3.y - p1.y) + (p3.x*p3.x + p3.y*p3.y) * (p1.y - p2.y)) / d;
+            let uy = ((p1.x*p1.x + p1.y*p1.y) * (p3.x - p2.x) + (p2.x*p2.x + p2.y*p2.y) * (p1.x - p3.x) + (p3.x*p3.x + p3.y*p3.y) * (p2.x - p1.x)) / d;
+            return {x: ux, y: uy};
+        }
+
+        function toScreen(p) { return { x: p.x * transform.k + transform.x, y: p.y * transform.k + transform.y }; }
+        function toWorld(p) { return { x: (p.x - transform.x) / transform.k, y: (p.y - transform.y) / transform.k }; }
+        function setWarning(msg) { if (msg) { warningBox.innerHTML = msg; warningBox.style.display = 'block'; } else { warningBox.style.display = 'none'; } }
+
+        function recalculateMechanism(proposedHR) {
+            let tempA1, tempA3, tempa13, tempHC, tempA2, tempA4, tempP2, tempP4, tempB1;
+            let int1 = circleIntersection(points.C[0], radii.r, proposedHR, radii.R);
+            let int3 = circleIntersection(points.C[2], radii.r, proposedHR, radii.R);
+            if (!int1.length || !int3.length) return false;
+            
+            tempA1 = int1[config.A1 % int1.length]; tempA3 = int3[config.A3 % int3.length];
+            tempa13 = perpBisector(tempA1, tempA3); if(!tempa13) return false;
+            tempHC = projectPointOnLine(points.HC, tempa13.p1, tempa13.p2);
+            
+            let crankR = dist(tempHC, tempA1);
+            let int2 = circleIntersection(points.C[1], radii.r, tempHC, crankR); let int4 = circleIntersection(points.C[3], radii.r, tempHC, crankR);
+            if (!int2.length || !int4.length) return false;
+            
+            tempA2 = int2[config.A2 % int2.length]; tempA4 = int4[config.A4 % int4.length];
+            tempP2 = rigidTransform(proposedHR, points.C[1], tempA2, points.C[0], tempA1);
+            tempP4 = rigidTransform(proposedHR, points.C[3], tempA4, points.C[0], tempA1);
+            
+            tempB1 = circumcenter(tempP2, proposedHR, tempP4); if(!tempB1) return false;
+            
+            points.HR = proposedHR; points.A1 = tempA1; points.A3 = tempA3; lines.a13 = tempa13;
+            points.HC = tempHC; points.A2 = tempA2; points.A4 = tempA4; points.P2 = tempP2; points.P4 = tempP4; points.B1 = tempB1;
+            
+            fullCouplerCurve = computeFullPath();
+            if (anim.initialized) anim.lengths = { L1: dist(points.HC, points.A1), L2: dist(points.A1, points.B1), L3: dist(points.HR, points.B1) };
+            return true;
+        }
+
+        function recalculateMechanismHC(proposedHC) {
+            let tempA2, tempA4, tempP2, tempP4, tempB1;
+            let crankR = dist(proposedHC, points.A1);
+            let int2 = circleIntersection(points.C[1], radii.r, proposedHC, crankR); let int4 = circleIntersection(points.C[3], radii.r, proposedHC, crankR);
+            if (!int2.length || !int4.length) return false;
+            
+            tempA2 = int2[config.A2 % int2.length]; tempA4 = int4[config.A4 % int4.length];
+            tempP2 = rigidTransform(points.HR, points.C[1], tempA2, points.C[0], points.A1);
+            tempP4 = rigidTransform(points.HR, points.C[3], tempA4, points.C[0], points.A1);
+            
+            tempB1 = circumcenter(tempP2, points.HR, tempP4); if(!tempB1) return false;
+            
+            points.HC = proposedHC; points.A2 = tempA2; points.A4 = tempA4; points.P2 = tempP2; points.P4 = tempP4; points.B1 = tempB1;
+            
+            fullCouplerCurve = computeFullPath();
+            if (anim.initialized) anim.lengths = { L1: dist(points.HC, points.A1), L2: dist(points.A1, points.B1), L3: dist(points.HR, points.B1) };
+            return true;
+        }
+
+        function autoFit() {
+            let allPoints = [];
+            if (points.HR) allPoints.push(points.HR); if (points.HC) allPoints.push(points.HC);
+            if (points.A1) allPoints.push(points.A1); if (points.A2) allPoints.push(points.A2); if (points.A3) allPoints.push(points.A3); if (points.A4) allPoints.push(points.A4);
+            if (points.B1) allPoints.push(points.B1); if (points.P2) allPoints.push(points.P2); if (points.P4) allPoints.push(points.P4);
+            if (points.C && points.C.length) allPoints.push(...points.C);
+            if (fullCouplerCurve && fullCouplerCurve.length) allPoints.push(...fullCouplerCurve);
+            if (anim.path && anim.path.length) allPoints.push(...anim.path);
+
+            if (currentStep >= 3 && points.HR) { allPoints.push({x: points.HR.x + radii.R, y: points.HR.y + radii.R}); allPoints.push({x: points.HR.x - radii.R, y: points.HR.y - radii.R}); }
+            if (currentStep >= 4 && points.C.length >= 3) { allPoints.push({x: points.C[0].x + radii.r, y: points.C[0].y + radii.r}); allPoints.push({x: points.C[0].x - radii.r, y: points.C[0].y - radii.r}); }
+            if (currentStep >= 7 && points.HC && points.A1) { let crankR = dist(points.HC, points.A1); allPoints.push({x: points.HC.x + crankR, y: points.HC.y + crankR}); allPoints.push({x: points.HC.x - crankR, y: points.HC.y - crankR}); }
+            
+            if (allPoints.length === 0) return; 
+
+            let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+            allPoints.forEach(p => { if (p.x < minX) minX = p.x; if (p.x > maxX) maxX = p.x; if (p.y < minY) minY = p.y; if (p.y > maxY) maxY = p.y; });
+            
+            let wX = maxX - minX; let wY = maxY - minY;
+            if (wX === 0) wX = 100; if (wY === 0) wY = 100;
+            let padX = wX * 0.15; let padY = wY * 0.15;
+            minX -= padX; maxX += padX; minY -= padY; maxY += padY; wX = maxX - minX; wY = maxY - minY;
+
+            let scaleX = width / wX; let scaleY = height / wY;
+            let newScale = Math.min(scaleX, scaleY); newScale = Math.min(Math.max(newScale, 0.1), 10); 
+            let cx = (minX + maxX) / 2; let cy = (minY + maxY) / 2;
+            transform.k = newScale; transform.x = width / 2 - cx * newScale; transform.y = height / 2 - cy * newScale;
+
+            let zoomPct = Math.round(newScale * 100);
+            let sld = document.getElementById('slider-zoom_g'); let vld = document.getElementById('val-zoom_g');
+            if(sld) sld.value = zoomPct; if(vld) vld.innerText = zoomPct; draw();
+        }
+
+        function drawFilledTriangle(p1, p2, p3, fillColor, strokeColor) {
+            let sp1 = toScreen(p1), sp2 = toScreen(p2), sp3 = toScreen(p3);
+            ctx.fillStyle = fillColor; ctx.strokeStyle = strokeColor; ctx.lineWidth = 1.5; ctx.setLineDash([4, 4]);
+            ctx.beginPath(); ctx.moveTo(sp1.x, sp1.y); ctx.lineTo(sp2.x, sp2.y); ctx.lineTo(sp3.x, sp3.y); ctx.closePath(); ctx.fill(); ctx.stroke(); ctx.setLineDash([]);
+        }
+
+        function computeFullPath() {
+            let L1 = dist(points.HC, points.A1); let L2 = dist(points.A1, points.B1); let L3 = dist(points.HR, points.B1);
+            let startAngle = Math.atan2(points.A1.y - points.HC.y, points.A1.x - points.HC.x); let lastB = {x: points.B1.x, y: points.B1.y};
+            let step = 0.01; let maxSteps = (Math.PI * 2) / step + 10;
+            
+            let forwardPath = [], backwardPath = [];
+            let theta = startAngle;
+            for(let i=0; i<maxSteps; i++) {
+                let A_next = { x: points.HC.x + L1 * Math.cos(theta), y: points.HC.y + L1 * Math.sin(theta) };
+                let intersects = circleIntersection(A_next, L2, points.HR, L3);
+                if(intersects.length === 0) break;
+                let B_next = intersects[0];
+                if(intersects.length > 1 && dist(intersects[1], lastB) < dist(intersects[0], lastB)) B_next = intersects[1];
+                lastB = B_next;
+                forwardPath.push(rigidTransform(points.C[0], points.A1, points.B1, A_next, B_next)); theta += step;
+            }
+
+            theta = startAngle - step; lastB = {x: points.B1.x, y: points.B1.y};
+            for(let i=0; i<maxSteps; i++) {
+                let A_next = { x: points.HC.x + L1 * Math.cos(theta), y: points.HC.y + L1 * Math.sin(theta) };
+                let intersects = circleIntersection(A_next, L2, points.HR, L3);
+                if(intersects.length === 0) break; 
+                let B_next = intersects[0];
+                if(intersects.length > 1 && dist(intersects[1], lastB) < dist(intersects[0], lastB)) B_next = intersects[1];
+                lastB = B_next;
+                backwardPath.push(rigidTransform(points.C[0], points.A1, points.B1, A_next, B_next)); theta -= step;
+            }
+
+            backwardPath.reverse(); let finalPath = backwardPath.concat(forwardPath);
+            circuitVisited = [false, false, false, false];
+            points.C.forEach((c, idx) => {
+                let minDist = Infinity;
+                finalPath.forEach(p => { let d = dist(c, p); if (d < minDist) minDist = d; });
+                if (minDist < 12) circuitVisited[idx] = true; 
+            });
+            return finalPath;
+        }
+
+        function drawPoint(p, label, color = '#fff', size = 5) {
+            if (!p) return; let sp = toScreen(p);
+            ctx.fillStyle = color; ctx.beginPath(); ctx.arc(sp.x, sp.y, size, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = '#fff'; ctx.font = '600 14px Montserrat, sans-serif'; ctx.fillText(label, sp.x + 8, sp.y - 8);
+        }
+        function drawLine(p1, p2, color = '#666', dashed = false, thick = 1.5) {
+            if(!p1 || !p2) return; let sp1 = toScreen(p1), sp2 = toScreen(p2);
+            ctx.strokeStyle = color; ctx.lineWidth = thick; ctx.setLineDash(dashed ? [5, 5] : []);
+            ctx.beginPath(); ctx.moveTo(sp1.x, sp1.y); ctx.lineTo(sp2.x, sp2.y); ctx.stroke(); ctx.setLineDash([]);
+        }
+        function drawCircle(center, radius, color, dashed = false) {
+            if(!center) return; let sc = toScreen(center);
+            ctx.strokeStyle = color; ctx.lineWidth = 1.5; ctx.setLineDash(dashed ? [5, 5] : []);
+            ctx.beginPath(); ctx.arc(sc.x, sc.y, radius * transform.k, 0, Math.PI * 2); ctx.stroke(); ctx.setLineDash([]);
+        }
+        function drawGroundPivot(p, label) {
+            if (!p) return; let sp = toScreen(p);
+            ctx.fillStyle = '#ccc'; ctx.strokeStyle = '#ccc'; ctx.lineWidth = 1.5; ctx.setLineDash([]);
+            ctx.beginPath(); ctx.moveTo(sp.x, sp.y); ctx.lineTo(sp.x - 12, sp.y + 18); ctx.lineTo(sp.x + 12, sp.y + 18); ctx.closePath(); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(sp.x - 18, sp.y + 18); ctx.lineTo(sp.x + 18, sp.y + 18); ctx.stroke();
+            for(let i = -12; i <= 12; i += 6) { ctx.beginPath(); ctx.moveTo(sp.x + i, sp.y + 18); ctx.lineTo(sp.x + i - 6, sp.y + 26); ctx.stroke(); }
+            ctx.fillStyle = '#fff'; ctx.font = 'bold 16px Montserrat, sans-serif'; ctx.fillText(label, sp.x + 18, sp.y + 5);
+            ctx.fillStyle = '#1e1e1e'; ctx.beginPath(); ctx.arc(sp.x, sp.y, 4, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+        }
+        function drawGrid() {
+            ctx.strokeStyle = '#333'; ctx.lineWidth = 1; const gridSize = 50; 
+            let tl = toWorld({x: 0, y: 0}), br = toWorld({x: width, y: height});
+            let startX = Math.floor(tl.x / gridSize) * gridSize, startY = Math.floor(tl.y / gridSize) * gridSize;
+            for (let x = startX; x <= br.x; x += gridSize) { let sp1 = toScreen({x: x, y: tl.y}), sp2 = toScreen({x: x, y: br.y}); ctx.beginPath(); ctx.moveTo(sp1.x, sp1.y); ctx.lineTo(sp2.x, sp2.y); ctx.stroke(); }
+            for (let y = startY; y <= br.y; y += gridSize) { let sp1 = toScreen({x: tl.x, y: y}), sp2 = toScreen({x: br.x, y: y}); ctx.beginPath(); ctx.moveTo(sp1.x, sp1.y); ctx.lineTo(sp2.x, sp2.y); ctx.stroke(); }
+        }
+
+        function animationLoop() {
+            if (!anim.playing) return;
+            anim.angle += (anim.speedMult * anim.dir);
+            let A_next = { x: points.HC.x + anim.lengths.L1 * Math.cos(anim.angle), y: points.HC.y + anim.lengths.L1 * Math.sin(anim.angle) };
+            let intersects = circleIntersection(A_next, anim.lengths.L2, points.HR, anim.lengths.L3);
+            if (intersects.length === 0) {
+                anim.dir *= -1; anim.angle += (anim.speedMult * anim.dir * 2); 
+            } else {
+                let B_next = intersects[0];
+                if (intersects.length > 1) {
+                    let d1 = dist(intersects[0], anim.lastB); let d2 = dist(intersects[1], anim.lastB);
+                    if (d2 < d1) B_next = intersects[1];
+                }
+                anim.lastB = B_next; anim.A_current = A_next; anim.B_current = B_next;
+                anim.C_current = rigidTransform(points.C[0], points.A1, points.B1, A_next, B_next);
+                anim.path.push(anim.C_current);
+                if(anim.path.length > 800) anim.path.shift();
+            }
+            draw(); anim.reqId = requestAnimationFrame(animationLoop);
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, width, height); drawGrid();
+            let activeWarning = "";
+
+            if (fullCouplerCurve.length > 1) {
+                ctx.strokeStyle = 'rgba(255, 82, 82, 0.3)'; ctx.lineWidth = 2.5; ctx.setLineDash([6, 6]); ctx.beginPath();
+                let sp0 = toScreen(fullCouplerCurve[0]); ctx.moveTo(sp0.x, sp0.y);
+                for(let i=1; i<fullCouplerCurve.length; i++) { let sp = toScreen(fullCouplerCurve[i]); ctx.lineTo(sp.x, sp.y); }
+                ctx.stroke(); ctx.setLineDash([]);
+            }
+
+            if (anim.path && anim.path.length > 1) {
+                ctx.strokeStyle = 'rgba(255, 82, 82, 0.8)'; ctx.lineWidth = 3; ctx.beginPath();
+                let sp0 = toScreen(anim.path[0]); ctx.moveTo(sp0.x, sp0.y);
+                for(let i=1; i<anim.path.length; i++) { let sp = toScreen(anim.path[i]); ctx.lineTo(sp.x, sp.y); }
+                ctx.stroke();
+            }
+
+            if (currentStep >= 12 && fullCouplerCurve.length > 0) {
+                points.C.forEach((p, i) => { let color = circuitVisited[i] ? 'rgba(0, 230, 118, 0.9)' : 'rgba(255, 82, 82, 0.9)'; let label = `C${i+1}` + (circuitVisited[i] ? ' ✓' : ' ❌'); drawPoint(p, label, color, 6); });
+            } else {
+                points.C.forEach((p, i) => drawPoint(p, `C${i+1}`, 'rgba(255, 82, 82, 0.9)', 6));
+            }
+
+            if (showConstruction) {
+                ctx.save();
+                if (currentStep >= 12) ctx.globalAlpha = 0.2; 
+                if (currentStep >= 1 && points.C.length >= 3) { drawLine(points.C[0], points.C[2], '#666', true); if(lines.c13.p1) drawLine(lines.c13.p1, lines.c13.p2, '#666', true); }
+                if (currentStep >= 2) drawGroundPivot(points.HR, 'H_R');
+                if (currentStep >= 3) drawCircle(points.HR, radii.R, '#666', true);
+                if (currentStep >= 4) {
+                    drawCircle(points.C[0], radii.r, '#777', true); drawCircle(points.C[2], radii.r, '#777', true);
+                    let intersects1 = circleIntersection(points.C[0], radii.r, points.HR, radii.R);
+                    let intersects3 = circleIntersection(points.C[2], radii.r, points.HR, radii.R);
+                    if (intersects1.length > 0 && intersects3.length > 0) {
+                        points.A1 = intersects1[config.A1 % intersects1.length]; points.A3 = intersects3[config.A3 % intersects3.length]; 
+                        drawPoint(points.A1, 'A1', '#ff9800'); drawPoint(points.A3, 'A3', '#ff9800');
+                    } else { points.A1 = null; points.A3 = null; if (currentStep === 4) activeWarning = "⚠️ <b>Algorithm failed:</b> Radii do not intersect!<br>Please adjust sliders R and r."; }
+                }
+                if (currentStep >= 5 && points.A1 && points.A3) { if(lines.a13.p1) drawLine(lines.a13.p1, lines.a13.p2, '#666', true); drawLine(points.A1, points.A3, '#666', true); }
+                if (currentStep >= 6 && points.HC) drawGroundPivot(points.HC, 'H_C');
+                if (currentStep >= 7 && points.HC && points.A1) drawCircle(points.HC, dist(points.HC, points.A1), '#00e676');
+                if (currentStep >= 8 && points.HC && points.A1) {
+                    let crankR = dist(points.HC, points.A1);
+                    drawCircle(points.C[1], radii.r, '#777', true); drawCircle(points.C[3], radii.r, '#777', true); 
+                    let intersects2 = circleIntersection(points.C[1], radii.r, points.HC, crankR);
+                    let intersects4 = circleIntersection(points.C[3], radii.r, points.HC, crankR);
+                    if(intersects2.length > 0 && intersects4.length > 0) {
+                        points.A2 = intersects2[config.A2 % intersects2.length]; points.A4 = intersects4[config.A4 % intersects4.length]; 
+                        drawPoint(points.A2, 'A2', '#ff9800'); drawPoint(points.A4, 'A4', '#ff9800');
+                    } else { points.A2 = null; points.A4 = null; if (currentStep === 8) activeWarning = "⚠️ <b>Algorithm failed:</b> The arcs cannot reach the Crank Circle."; }
+                }
+                if (currentStep >= 9) { ['A1','A2','A3','A4'].forEach((aName, i) => { if(points[aName]) drawLine(points.C[i], points[aName], '#40c4ff'); }); }
+                if (currentStep >= 10 && points.A1 && points.A2 && points.A4 && points.HR) {
+                    drawFilledTriangle(points.C[1], points.A2, points.HR, 'rgba(0, 229, 255, 0.15)', '#00e5ff'); drawFilledTriangle(points.C[0], points.A1, points.P2, 'rgba(0, 229, 255, 0.15)', '#00e5ff');
+                    drawFilledTriangle(points.C[3], points.A4, points.HR, 'rgba(255, 152, 0, 0.15)', '#ff9800'); drawFilledTriangle(points.C[0], points.A1, points.P4, 'rgba(255, 152, 0, 0.15)', '#ff9800');
+                    drawPoint(points.P2, 'Point 2', '#e040fb'); drawPoint(points.P4, 'Point 4', '#e040fb');
+                }
+                if (currentStep >= 11 && points.P2 && points.P4 && points.HR) {
+                    let bisect1 = perpBisector(points.HR, points.P2, 2000); let bisect2 = perpBisector(points.HR, points.P4, 2000);
+                    if (bisect1) drawLine(bisect1.p1, bisect1.p2, '#00e676', true, 1.5);
+                    if (bisect2) drawLine(bisect2.p1, bisect2.p2, '#00e676', true, 1.5);
+                    if(points.B1) { drawCircle(points.B1, dist(points.B1, points.HR), '#b388ff', true); drawPoint(points.B1, 'B₁', '#b388ff', 6); } 
+                    else activeWarning = "⚠️ <b>Algorithm failed:</b> Points 2, H_R, and 4 are perfectly collinear.";
+                }
+                ctx.restore();
+            }
+
+            if (currentStep >= 12 && points.HC && points.B1 && points.A1 && points.HR) {
+                let drawA = anim.initialized ? anim.A_current : points.A1;
+                let drawB = anim.initialized ? anim.B_current : points.B1;
+                let drawC = anim.initialized ? anim.C_current : points.C[0];
+
+                drawLine(points.HC, points.HR, '#aaaaaa', true, 2); 
+                drawLine(points.HC, drawA, '#ff5252', false, 4); 
+                drawLine(points.HR, drawB, '#69f0ae', false, 4); 
+                
+                let spA = toScreen(drawA), spB = toScreen(drawB), spC = toScreen(drawC);
+                ctx.fillStyle = 'rgba(255, 215, 0, 0.2)'; ctx.strokeStyle = '#ffd700'; ctx.lineWidth = 2;
+                ctx.beginPath(); ctx.moveTo(spA.x, spA.y); ctx.lineTo(spB.x, spB.y); ctx.lineTo(spC.x, spC.y);
+                ctx.closePath(); ctx.fill(); ctx.stroke();
+
+                if(!anim.playing) { ctx.shadowColor = '#00e5ff'; ctx.shadowBlur = 10; }
+                drawGroundPivot(points.HC, 'H_C'); drawGroundPivot(points.HR, 'H_R'); ctx.shadowBlur = 0;
+
+                drawPoint(drawA, 'A', '#ff9800', 6); drawPoint(drawB, 'B₁', '#fff', 6); 
+                drawPoint(drawC, anim.initialized ? 'Tracker' : 'C₁', '#ff5252', 6); 
+            }
+            setWarning(activeWarning);
+        }
+
+        function resize() {
+            if (canvas.parentElement.clientWidth === 0) return; 
+            canvas.width = canvas.parentElement.clientWidth; canvas.height = canvas.parentElement.clientHeight;
+            width = canvas.width; height = canvas.height; draw();
+        }
+        window.addEventListener('resize', resize);
+
+        function updateConfigUI() {
+            let elA1 = document.getElementById('btn-cfg-a1_g'); if(elA1) elA1.innerText = `A₁: ${config.A1 === 0 ? '●1 / 2' : '1 / ●2'}`;
+            let elA3 = document.getElementById('btn-cfg-a3_g'); if(elA3) elA3.innerText = `A₃: ${config.A3 === 0 ? '●1 / 2' : '1 / ●2'}`;
+            let elA2 = document.getElementById('btn-cfg-a2_g'); if(elA2) elA2.innerText = `A₂: ${config.A2 === 0 ? '●1 / 2' : '1 / ●2'}`;
+            let elA4 = document.getElementById('btn-cfg-a4_g'); if(elA4) elA4.innerText = `A₄: ${config.A4 === 0 ? '●1 / 2' : '1 / ●2'}`;
+            
+            if(elA2) elA2.disabled = currentStep < 8; if(elA4) elA4.disabled = currentStep < 8;
+
+            let checkEl = document.getElementById('config-circuit-check_g');
+            if(checkEl) {
+                if (currentStep >= 12 && fullCouplerCurve.length > 0) {
+                    let reached = circuitVisited.filter(v => v).length;
+                    checkEl.style.display = 'block';
+                    if (reached === 4) { checkEl.innerHTML = `✅ All 4 points on same circuit`; checkEl.style.color = 'var(--accent-done)'; } 
+                    else { checkEl.innerHTML = `⚠️ Circuit defect: ${reached}/4 points reached`; checkEl.style.color = '#ff5252'; }
+                } else { checkEl.style.display = 'none'; }
+            }
+        }
+
+        function updateUI() {
+            for (let i = 0; i < stepsInfo.length; i++) {
+                let el = document.getElementById(`step-${i}_g`);
+                if(el) el.className = `step ${i === currentStep ? 'active' : ''} ${i < currentStep ? 'done' : ''}`;
+            }
+            let activeEl = document.getElementById(`step-${currentStep}_g`);
+            if (activeEl && activeEl.scrollIntoView) { activeEl.scrollIntoView({ behavior: "smooth", block: "nearest" }); }
+
+            let sRG = document.getElementById('slider-R-group_g'); if(sRG) sRG.style.display = (currentStep === 3 || currentStep === 4) ? 'flex' : 'none';
+            let srg = document.getElementById('slider-r-group_g'); if(srg) srg.style.display = (currentStep === 4) ? 'flex' : 'none';
+            let cpn = document.getElementById('config-panel_g'); if(cpn) cpn.style.display = (currentStep >= 4) ? 'flex' : 'none';
+            let nxt = document.getElementById('btn-next_g'); if(nxt) nxt.style.display = (currentStep < 12) ? 'block' : 'none';
+            let tgl = document.getElementById('btn-toggle-const_g'); if(tgl) tgl.style.display = (currentStep >= 12) ? 'block' : 'none';
+            let apn = document.getElementById('animation-palette_g'); if(apn) apn.style.display = (currentStep >= 12) ? 'flex' : 'none';
+
+            updateConfigUI();
+        }
+
+        function initUI() {
+            const container = document.getElementById('steps-container_g'); if(!container) return;
+            container.innerHTML = '';
+            stepsInfo.forEach((step, i) => {
+                let div = document.createElement('div'); div.className = `step ${i === currentStep ? 'active' : ''} ${i < currentStep ? 'done' : ''}`; div.id = `step-${i}_g`;
+                div.innerHTML = `<div class="step-title">${step.title}</div><div class="step-desc">${step.desc}</div>`; container.appendChild(div);
+            });
+            updateUI();
+        }
+
+        function stopAnimationHelper() {
+            anim.initialized = false; anim.playing = false; cancelAnimationFrame(anim.reqId);
+            let btnPlay = document.getElementById('btn-play-pause_g');
+            if (btnPlay) { btnPlay.innerText = "Play Simulation"; btnPlay.style.backgroundColor = "var(--accent-done)"; btnPlay.style.color = "#000"; }
+        }
+
+        let btnAutofit = document.getElementById('btn-autofit_g'); if (btnAutofit) btnAutofit.addEventListener('click', autoFit);
+
+        ['a1','a2','a3','a4'].forEach((a) => {
+            let btn = document.getElementById(`btn-cfg-${a}_g`);
+            if(btn) btn.addEventListener('click', () => {
+                stopAnimationHelper(); let key = a.toUpperCase(); config[key] = 1 - config[key];
+                if (currentStep >= 4 && points.HR) {
+                    let int1 = circleIntersection(points.C[0], radii.r, points.HR, radii.R); let int3 = circleIntersection(points.C[2], radii.r, points.HR, radii.R);
+                    if (int1.length) points.A1 = int1[config.A1 % int1.length]; if (int3.length) points.A3 = int3[config.A3 % int3.length];
+                }
+                if (currentStep >= 5 && points.A1 && points.A3) lines.a13 = perpBisector(points.A1, points.A3);
+                if (currentStep >= 6 && points.HC && lines.a13 && lines.a13.p1) points.HC = projectPointOnLine(points.HC, lines.a13.p1, lines.a13.p2);
+                if (currentStep >= 8 && points.HC && points.A1) {
+                    let crankR = dist(points.HC, points.A1);
+                    let int2 = circleIntersection(points.C[1], radii.r, points.HC, crankR); let int4 = circleIntersection(points.C[3], radii.r, points.HC, crankR);
+                    if (int2.length) points.A2 = int2[config.A2 % int2.length]; if (int4.length) points.A4 = int4[config.A4 % int4.length];
+                }
+                if (currentStep >= 10 && points.A1 && points.A2 && points.A4 && points.HR) {
+                    points.P2 = rigidTransform(points.HR, points.C[1], points.A2, points.C[0], points.A1);
+                    points.P4 = rigidTransform(points.HR, points.C[3], points.A4, points.C[0], points.A1);
+                }
+                if (currentStep >= 11 && points.P2 && points.P4 && points.HR) points.B1 = circumcenter(points.P2, points.HR, points.P4);
+                if (currentStep >= 12 && points.B1) fullCouplerCurve = computeFullPath(); 
+                
+                updateUI(); autoFit();
+            });
+        });
+
+        canvas.addEventListener('mousedown', (e) => { 
+            const rect = canvas.getBoundingClientRect(); const pWorld = toWorld({x: e.clientX - rect.left, y: e.clientY - rect.top});
+            if (currentStep >= 12) {
+                if (points.HR && dist(pWorld, points.HR) < 20 / transform.k) { isDraggingHR = true; return; }
+                if (points.HC && dist(pWorld, points.HC) < 20 / transform.k) { isDraggingHC = true; return; }
+            }
+            isPanning = true; hasMoved = false; startPan = { x: e.clientX - transform.x, y: e.clientY - transform.y }; 
+        });
+
+        window.addEventListener('mousemove', (e) => {
+            const rect = canvas.getBoundingClientRect(); const pScreenX = e.clientX - rect.left; const pScreenY = e.clientY - rect.top;
+            if(currentStep >= 12) {
+                const pWorld = toWorld({x: pScreenX, y: pScreenY});
+                let overHR = points.HR && dist(pWorld, points.HR) < 20 / transform.k; let overHC = points.HC && dist(pWorld, points.HC) < 20 / transform.k;
+                if(overHR || isDraggingHR || overHC || isDraggingHC) { canvas.style.cursor = (isDraggingHR || isDraggingHC) ? 'grabbing' : 'grab'; } 
+                else { canvas.style.cursor = isPanning ? 'grabbing' : 'crosshair'; }
+            } else { canvas.style.cursor = isPanning ? 'grabbing' : 'crosshair'; }
+
+            if (isDraggingHR) { const pWorld = toWorld({x: pScreenX, y: pScreenY}); let proposedHR = projectPointOnLine(pWorld, lines.c13.p1, lines.c13.p2); recalculateMechanism(proposedHR); updateConfigUI(); if(!anim.playing) draw(); return; }
+            if (isDraggingHC) { const pWorld = toWorld({x: pScreenX, y: pScreenY}); let proposedHC = projectPointOnLine(pWorld, lines.a13.p1, lines.a13.p2); recalculateMechanismHC(proposedHC); updateConfigUI(); if(!anim.playing) draw(); return; }
+
+            if (isPanning) {
+                let newX = e.clientX - startPan.x; let newY = e.clientY - startPan.y;
+                if (Math.abs(newX - transform.x) > 3 || Math.abs(newY - transform.y) > 3) hasMoved = true;
+                transform.x = newX; transform.y = newY; if(!anim.playing) draw();
+            }
+        });
+
+        window.addEventListener('mouseup', () => { isPanning = false; isDraggingHR = false; isDraggingHC = false; });
+        
+        canvas.addEventListener('wheel', (e) => {
+            e.preventDefault(); const zoomSensitivity = 0.001; const delta = -e.deltaY * zoomSensitivity;
+            const newScale = Math.min(Math.max(0.1, transform.k * Math.exp(delta)), 10);
+            const rect = canvas.getBoundingClientRect(); const mouseX = e.clientX - rect.left; const mouseY = e.clientY - rect.top;
+            transform.x = mouseX - (mouseX - transform.x) * (newScale / transform.k); transform.y = mouseY - (mouseY - transform.y) * (newScale / transform.k); transform.k = newScale;
+            let zoomPct = Math.round(newScale * 100); let sld = document.getElementById('slider-zoom_g'); if(sld) sld.value = zoomPct; 
+            let vld = document.getElementById('val-zoom_g'); if(vld) vld.innerText = zoomPct; if(!anim.playing) draw();
+        }, {passive: false});
+
+        canvas.addEventListener('click', (e) => {
+            if (hasMoved || isDraggingHR || isDraggingHC) return; 
+            const rect = canvas.getBoundingClientRect(); const p = toWorld({x: e.clientX - rect.left, y: e.clientY - rect.top}); 
+            switch(currentStep) {
+                case 0: if(points.C.length < 4) points.C.push(p); break;
+                case 2: if(lines.c13.p1) points.HR = projectPointOnLine(p, lines.c13.p1, lines.c13.p2); break;
+                case 6: if(lines.a13.p1) points.HC = projectPointOnLine(p, lines.a13.p1, lines.a13.p2); break;
+            }
+            updateUI(); draw();
+        });
+
+        let sR = document.getElementById('slider-R_g'); if(sR) sR.addEventListener('input', (e) => { radii.R = parseInt(e.target.value); document.getElementById('val-R_g').innerText = radii.R; if(!anim.playing) draw(); });
+        let sr = document.getElementById('slider-r_g'); if(sr) sr.addEventListener('input', (e) => { radii.r = parseInt(e.target.value); document.getElementById('val-r_g').innerText = radii.r; if(!anim.playing) draw(); });
+        let sZ = document.getElementById('slider-zoom_g'); if(sZ) sZ.addEventListener('input', (e) => {
+            let zoomPct = parseInt(e.target.value); document.getElementById('val-zoom_g').innerText = zoomPct;
+            let newScale = zoomPct / 100; let centerX = width / 2; let centerY = height / 2;
+            transform.x = centerX - (centerX - transform.x) * (newScale / transform.k); transform.y = centerY - (centerY - transform.y) * (newScale / transform.k); transform.k = newScale;
+            if(!anim.playing) draw();
+        });
+        let sS = document.getElementById('slider-speed_g'); if(sS) sS.addEventListener('input', (e) => { let val = parseInt(e.target.value); document.getElementById('val-speed_g').innerText = val; anim.speedMult = val * 0.0005; });
+        
+        let tgl = document.getElementById('btn-toggle-const_g'); if(tgl) tgl.addEventListener('click', (e) => { showConstruction = !showConstruction; e.target.innerText = showConstruction ? "Hide Construction" : "Show Construction"; if(!anim.playing) draw(); });
+
+        let ply = document.getElementById('btn-play-pause_g'); if(ply) ply.addEventListener('click', (e) => {
+            if (!anim.initialized) {
+                anim.initialized = true; anim.playing = true;
+                anim.angle = Math.atan2(points.A1.y - points.HC.y, points.A1.x - points.HC.x); anim.lastB = {x: points.B1.x, y: points.B1.y}; anim.path = []; anim.dir = 1;
+                anim.lengths = { L1: dist(points.HC, points.A1), L2: dist(points.A1, points.B1), L3: dist(points.HR, points.B1) };
+                animationLoop();
+            } else {
+                anim.playing = !anim.playing; if (anim.playing) animationLoop(); else cancelAnimationFrame(anim.reqId);
+            }
+            e.target.innerText = anim.playing ? "Pause" : "Play Simulation"; e.target.style.backgroundColor = anim.playing ? "#ffb300" : "var(--accent-done)"; e.target.style.color = "#000";
+            updateUI();
+        });
+
+        let stp = document.getElementById('btn-stop-anim_g'); if(stp) stp.addEventListener('click', () => { stopAnimationHelper(); draw(); updateUI(); });
+
+        let nxt = document.getElementById('btn-next_g'); if(nxt) nxt.addEventListener('click', () => {
+            if (currentStep === 0 && points.C.length < 4) { alert("Please place 4 precision points on the canvas first."); return; }
+            if (currentStep === 2 && !points.HR) { alert("Please click on the dashed line to place H_R first."); return; }
+            if (currentStep === 4 && (!points.A1 || !points.A3)) { alert("Please adjust the sliders R and r so the arcs intersect."); return; }
+            if (currentStep === 6 && !points.HC) { alert("Please click on the dashed line to place H_C first."); return; }
+            if (currentStep === 8 && (!points.A2 || !points.A4)) { alert("Arcs do not intersect the crank circle. Go back and adjust."); return; }
+            if (currentStep < 12) {
+                currentStep++;
+                if (currentStep === 1) lines.c13 = perpBisector(points.C[0], points.C[2]);
+                else if (currentStep === 5) lines.a13 = perpBisector(points.A1, points.A3);
+                else if (currentStep === 10) { points.P2 = rigidTransform(points.HR, points.C[1], points.A2, points.C[0], points.A1); points.P4 = rigidTransform(points.HR, points.C[3], points.A4, points.C[0], points.A1); }
+                else if (currentStep === 11) points.B1 = circumcenter(points.P2, points.HR, points.P4);
+                else if (currentStep === 12 && points.B1) fullCouplerCurve = computeFullPath(); 
+                updateUI(); if (currentStep > 0) autoFit(); 
+            }
+        });
+
+        let rst = document.getElementById('btn-reset_g'); if(rst) rst.addEventListener('click', () => {
+            stopAnimationHelper(); currentStep = 0; showConstruction = true; 
+            let tglC = document.getElementById('btn-toggle-const_g'); if(tglC) tglC.innerText = "Hide Construction";
+            points = { C: [], HR: null, A1: null, A3: null, HC: null, A2: null, A4: null, B1: null, P2: null, P4: null };
+            lines = { c13: { p1: null, p2: null }, a13: { p1: null, p2: null } }; fullCouplerCurve = []; circuitVisited = [false, false, false, false];
+            config = { A1: 0, A2: 0, A3: 0, A4: 0 }; transform = { x: 0, y: 0, k: 1 }; anim.path = [];
+            let sld = document.getElementById('slider-zoom_g'); if(sld) sld.value = 100; let vld = document.getElementById('val-zoom_g'); if(vld) vld.innerText = 100;
+            updateUI(); draw();
+        });
+
+        let bck = document.getElementById('btn-back_g'); if(bck) bck.addEventListener('click', () => {
+            stopAnimationHelper(); if(currentStep > 0) currentStep--;
+            if(currentStep < 12) { fullCouplerCurve = []; circuitVisited = [false, false, false, false]; anim.path = []; }
+            if(currentStep < 11) { points.B1 = null; }
+            if(currentStep < 10) { points.P2 = null; points.P4 = null; }
+            if(currentStep < 8) { points.A2 = null; points.A4 = null; }
+            if(currentStep < 6) points.HC = null;
+            if(currentStep < 5) lines.a13 = {p1:null, p2:null};
+            if(currentStep < 4) { points.A1 = null; points.A3 = null; }
+            if(currentStep < 2) points.HR = null;
+            if(currentStep === 0) points.C = [];
+            showConstruction = true; let tglC = document.getElementById('btn-toggle-const_g'); if(tglC) tglC.innerText = "Hide Construction";
+            updateUI(); if (currentStep > 0) autoFit(); else draw();
+        });
+
+        initUI(); setTimeout(resize, 50);
+
+    } catch (err) {
+        const errBox = document.getElementById('steps-container_g');
+        if (errBox) { errBox.innerHTML = '<div style="color:#ff5252; padding:15px; font-weight:bold; word-wrap: break-word;">Engine Error:<br><br>' + err.message + '<br><br>' + err.stack + '</div>'; } 
+        else { alert("Fatal Error: " + err.message); }
+    }
+})();
+
+
+// ==========================================
+// ====== 2. GRAPHICAL 5-POINT ENGINE  ======
+// ==========================================
+(function() {
+    try {
+        const canvas = document.getElementById('mechCanvas_g5');
+        const ctx = canvas.getContext('2d');
+        const warningBox = document.getElementById('warning-box_g5');
+        let width, height;
+
+        let currentStep = 0;
+        let showConstruction = true;
+        let activeWarning = "";
+        
+        let points = { C: [], HR: null, A_p1: null, A_p2: null, HC: null, A_p3: null, P2: null, P3: null, B1: null };
+        let lines = { L1: null, L2: null, L1p: null, L2p: null, axis_p: null, a_p12: null };
+        let radii = { alpha: 0, r: 100 };
+        let config = { Ap1: 0, Ap2: 0, Ap3: 0 }; 
+
+        let fullCouplerCurve = []; 
+        let circuitVisited = [false, false, false, false, false]; 
+
+        let transform = { x: 0, y: 0, k: 1 };
+        let isPanning = false, hasMoved = false, startPan = { x: 0, y: 0 };
+
+        let anim = { initialized: false, playing: false, reqId: null, angle: 0, speedMult: 0.025, dir: 1, lastB: null, path: [], lengths: {}, A_current: null, B_current: null, C_current: null };
+
+        const stepsInfo = [
+            { title: "SETUP", desc: "Click to place 5 precision points (Coupler path): C₁, C₂, C₃, C₄, C₅." },
+            { title: "STEP 1: Select Point Pairs", desc: "Choose two pairs of points to define your mid-normals L₁ and L₂. H_R is exactly at their intersection." },
+            { title: "STEP 2: Coincident Mid-normals & Overlay", desc: "Line H_R-to-P1 is rotated so its mid-normal aligns perfectly with the 2nd mid-normal. Adjust slider α to rotate these lines together." },
+            { title: "STEP 3: Find Crank Pins 1 & 2", desc: "Adjust slider r. Intersections from your chosen points onto L₁' and L₂' yield your first two crank pins." },
+            { title: "STEP 4: Locate Crank Pivot H_C", desc: "Draw mid-normal between the two pins. It intersects the coincident mid-normal (dashed line) precisely at H_C. Draw Crank Circle." },
+            { title: "STEP 5: Find 3rd Crank Pin", desc: "Using the remaining unselected precision point with radius r, find its pin on the crank circle." },
+            { title: "STEP 6: Inversion on Follower", desc: "Locate inverted points such that △CᵢAᵢH_R ≅ △C_base A_base Pᵢ. Both points of Pair 2 invert to the same location." },
+            { title: "STEP 7: Locate Rocker Tip B₁", desc: "Draw the mid-normals of the lines joining H_R to the two inverted points from Step 6. Their intersection yields B₁." },
+            { title: "STEP 8: Final 5-Point Mechanism", desc: "The four-bar linkage is synthesized. Press play to trace the curve." }
+        ];
+
+        function dist(p1, p2) { return Math.hypot(p2.x - p1.x, p2.y - p1.y); }
+        function midpoint(p1, p2) { return { x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2 }; }
+        function perpBisector(p1, p2, length = 5000) {
+            const mid = midpoint(p1, p2); const dx = p2.x - p1.x; const dy = p2.y - p1.y; const len = Math.hypot(dx, dy);
+            if (len === 0) return null;
+            return { p1: { x: mid.x + (-dy/len) * length, y: mid.y + (dx/len) * length }, p2: { x: mid.x - (-dy/len) * length, y: mid.y - (dx/len) * length } };
+        }
+        function lineIntersection(p1, p2, p3, p4) {
+            let x1 = p1.x, y1 = p1.y, x2 = p2.x, y2 = p2.y;
+            let x3 = p3.x, y3 = p3.y, x4 = p4.x, y4 = p4.y;
+            let den = (x1-x2)*(y3-y4) - (y1-y2)*(x3-x4);
+            if (Math.abs(den) < 1e-5) return null;
+            let t = ((x1-x3)*(y3-y4) - (y1-y3)*(x3-x4)) / den;
+            return {x: x1 + t*(x2-x1), y: y1 + t*(y2-y1)};
+        }
+        function circleLineIntersection(center, r, linePt, lineDir) {
+            let U = { x: linePt.x - center.x, y: linePt.y - center.y };
+            let B = 2 * (lineDir.x * U.x + lineDir.y * U.y);
+            let Ceq = U.x*U.x + U.y*U.y - r*r;
+            let disc = B*B - 4*Ceq;
+            if (disc < 0) return [];
+            let t1 = (-B + Math.sqrt(disc)) / 2;
+            let t2 = (-B - Math.sqrt(disc)) / 2;
+            return [ {x: linePt.x + t1*lineDir.x, y: linePt.y + t1*lineDir.y}, {x: linePt.x + t2*lineDir.x, y: linePt.y + t2*lineDir.y} ];
+        }
+        function circleIntersection(center1, r1, center2, r2) {
+            let d = dist(center1, center2); if (d > r1 + r2 || d < Math.abs(r1 - r2) || d === 0) return []; 
+            let a = (r1*r1 - r2*r2 + d*d) / (2*d); let h = Math.sqrt(Math.max(0, r1*r1 - a*a));
+            let p2 = { x: center1.x + a * (center2.x - center1.x) / d, y: center1.y + a * (center2.y - center1.y) / d };
+            return [ { x: p2.x + h * (center2.y - center1.y) / d, y: p2.y - h * (center2.x - center1.x) / d }, { x: p2.x - h * (center2.y - center1.y) / d, y: p2.y + h * (center2.x - center1.x) / d } ];
+        }
+        function rigidTransform(p, frameP1, frameP2, targetP1, targetP2) {
+            let angleFrame = Math.atan2(frameP2.y - frameP1.y, frameP2.x - frameP1.x); let angleTarget = Math.atan2(targetP2.y - targetP1.y, targetP2.x - targetP1.x);
+            let deltaAngle = angleTarget - angleFrame; let vx = p.x - frameP1.x; let vy = p.y - frameP1.y;
+            let rx = vx * Math.cos(deltaAngle) - vy * Math.sin(deltaAngle); let ry = vx * Math.sin(deltaAngle) + vy * Math.cos(deltaAngle);
+            return { x: targetP1.x + rx, y: targetP1.y + ry };
+        }
+        function circumcenter(p1, p2, p3) {
+            let d = 2 * (p1.x * (p2.y - p3.y) + p2.x * (p3.y - p1.y) + p3.x * (p1.y - p2.y)); if (Math.abs(d) < 1e-5) return null; 
+            let ux = ((p1.x*p1.x + p1.y*p1.y) * (p2.y - p3.y) + (p2.x*p2.x + p2.y*p2.y) * (p3.y - p1.y) + (p3.x*p3.x + p3.y*p3.y) * (p1.y - p2.y)) / d;
+            let uy = ((p1.x*p1.x + p1.y*p1.y) * (p3.x - p2.x) + (p2.x*p2.x + p2.y*p2.y) * (p1.x - p3.x) + (p3.x*p3.x + p3.y*p3.y) * (p2.x - p1.x)) / d;
+            return {x: ux, y: uy};
+        }
+
+        // --- DRAWING HELPERS ---
+        function toScreen(p) { return { x: p.x * transform.k + transform.x, y: p.y * transform.k + transform.y }; }
+        function toWorld(p) { return { x: (p.x - transform.x) / transform.k, y: (p.y - transform.y) / transform.k }; }
+        function setWarning(msg) { if (msg) { warningBox.innerHTML = msg; warningBox.style.display = 'block'; } else { warningBox.style.display = 'none'; } }
+        function drawPoint(p, label, color = '#fff', size = 5) {
+            if (!p) return; let sp = toScreen(p);
+            ctx.fillStyle = color; ctx.beginPath(); ctx.arc(sp.x, sp.y, size, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = '#fff'; ctx.font = '600 14px Montserrat, sans-serif'; ctx.fillText(label, sp.x + 8, sp.y - 8);
+        }
+        function drawLine(p1, p2, color = '#666', dashed = false, thick = 1.5) {
+            if(!p1 || !p2) return; let sp1 = toScreen(p1), sp2 = toScreen(p2);
+            ctx.strokeStyle = color; ctx.lineWidth = thick; ctx.setLineDash(dashed ? [5, 5] : []);
+            ctx.beginPath(); ctx.moveTo(sp1.x, sp1.y); ctx.lineTo(sp2.x, sp2.y); ctx.stroke(); ctx.setLineDash([]);
+        }
+        function drawCircle(center, radius, color, dashed = false) {
+            if(!center) return; let sc = toScreen(center);
+            ctx.strokeStyle = color; ctx.lineWidth = 1.5; ctx.setLineDash(dashed ? [5, 5] : []);
+            ctx.beginPath(); ctx.arc(sc.x, sc.y, radius * transform.k, 0, Math.PI * 2); ctx.stroke(); ctx.setLineDash([]);
+        }
+        function drawGroundPivot(p, label) {
+            if (!p) return; let sp = toScreen(p);
+            ctx.fillStyle = '#ccc'; ctx.strokeStyle = '#ccc'; ctx.lineWidth = 1.5; ctx.setLineDash([]);
+            ctx.beginPath(); ctx.moveTo(sp.x, sp.y); ctx.lineTo(sp.x - 12, sp.y + 18); ctx.lineTo(sp.x + 12, sp.y + 18); ctx.closePath(); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(sp.x - 18, sp.y + 18); ctx.lineTo(sp.x + 18, sp.y + 18); ctx.stroke();
+            for(let i = -12; i <= 12; i += 6) { ctx.beginPath(); ctx.moveTo(sp.x + i, sp.y + 18); ctx.lineTo(sp.x + i - 6, sp.y + 26); ctx.stroke(); }
+            ctx.fillStyle = '#fff'; ctx.font = 'bold 16px Montserrat, sans-serif'; ctx.fillText(label, sp.x + 18, sp.y + 5);
+            ctx.fillStyle = '#1e1e1e'; ctx.beginPath(); ctx.arc(sp.x, sp.y, 4, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+        }
+        function drawFilledTriangle(p1, p2, p3, fillColor, strokeColor) {
+            let sp1 = toScreen(p1), sp2 = toScreen(p2), sp3 = toScreen(p3);
+            ctx.fillStyle = fillColor; ctx.strokeStyle = strokeColor; ctx.lineWidth = 1.5; ctx.setLineDash([4, 4]);
+            ctx.beginPath(); ctx.moveTo(sp1.x, sp1.y); ctx.lineTo(sp2.x, sp2.y); ctx.lineTo(sp3.x, sp3.y); ctx.closePath(); ctx.fill(); ctx.stroke(); ctx.setLineDash([]);
+        }
+        function drawGrid() {
+            ctx.strokeStyle = '#333'; ctx.lineWidth = 1; const gridSize = 50; 
+            let tl = toWorld({x: 0, y: 0}), br = toWorld({x: width, y: height});
+            let startX = Math.floor(tl.x / gridSize) * gridSize, startY = Math.floor(tl.y / gridSize) * gridSize;
+            for (let x = startX; x <= br.x; x += gridSize) { let sp1 = toScreen({x: x, y: tl.y}), sp2 = toScreen({x: x, y: br.y}); ctx.beginPath(); ctx.moveTo(sp1.x, sp1.y); ctx.lineTo(sp2.x, sp2.y); ctx.stroke(); }
+            for (let y = startY; y <= br.y; y += gridSize) { let sp1 = toScreen({x: tl.x, y: y}), sp2 = toScreen({x: br.x, y: y}); ctx.beginPath(); ctx.moveTo(sp1.x, sp1.y); ctx.lineTo(sp2.x, sp2.y); ctx.stroke(); }
+        }
+
+        function computeFullPath() {
+            let i1a = parseInt(document.getElementById('p1a_g5').value);
+            if(!points.HC || !points.A_p1 || !points.HR || !points.B1) return [];
+            let L1 = dist(points.HC, points.A_p1); let L2 = dist(points.A_p1, points.B1); let L3 = dist(points.HR, points.B1);
+            let startAngle = Math.atan2(points.A_p1.y - points.HC.y, points.A_p1.x - points.HC.x); let lastB = {x: points.B1.x, y: points.B1.y};
+            
+            let step = 0.01; let maxSteps = (Math.PI * 2) / step + 10;
+            let forwardPath = [], backwardPath = [];
+            
+            let theta = startAngle;
+            for(let i=0; i<maxSteps; i++) {
+                let A_next = { x: points.HC.x + L1 * Math.cos(theta), y: points.HC.y + L1 * Math.sin(theta) };
+                let intersects = circleIntersection(A_next, L2, points.HR, L3);
+                if(intersects.length === 0) break;
+                let B_next = intersects[0];
+                if(intersects.length > 1 && dist(intersects[1], lastB) < dist(intersects[0], lastB)) B_next = intersects[1];
+                lastB = B_next;
+                forwardPath.push(rigidTransform(points.C[i1a], points.A_p1, points.B1, A_next, B_next)); theta += step;
+            }
+
+            theta = startAngle - step; lastB = {x: points.B1.x, y: points.B1.y};
+            for(let i=0; i<maxSteps; i++) {
+                let A_next = { x: points.HC.x + L1 * Math.cos(theta), y: points.HC.y + L1 * Math.sin(theta) };
+                let intersects = circleIntersection(A_next, L2, points.HR, L3);
+                if(intersects.length === 0) break; 
+                let B_next = intersects[0];
+                if(intersects.length > 1 && dist(intersects[1], lastB) < dist(intersects[0], lastB)) B_next = intersects[1];
+                lastB = B_next;
+                backwardPath.push(rigidTransform(points.C[i1a], points.A_p1, points.B1, A_next, B_next)); theta -= step;
+            }
+
+            backwardPath.reverse();
+            let finalPath = backwardPath.concat(forwardPath);
+            circuitVisited = [false, false, false, false, false];
+            points.C.forEach((c, idx) => {
+                let minDist = Infinity;
+                finalPath.forEach(p => { let d = dist(c, p); if (d < minDist) minDist = d; });
+                if (minDist < 12) circuitVisited[idx] = true; 
+            });
+            return finalPath;
+        }
+
+        // --- ENGINE RECALCULATION ---
+        function recalculate() {
+            activeWarning = "";
+            if (points.C.length < 5) return;
+
+            let i1a = parseInt(document.getElementById('p1a_g5').value);
+            let i1b = parseInt(document.getElementById('p1b_g5').value);
+            let i2a = parseInt(document.getElementById('p2a_g5').value);
+            let i2b = parseInt(document.getElementById('p2b_g5').value);
+            
+            let usedIndices = [i1a, i1b, i2a, i2b];
+            let i3 = [0, 1, 2, 3, 4].find(idx => !usedIndices.includes(idx));
+            if (i3 === undefined) i3 = [0, 1, 2, 3, 4].find(idx => idx !== i1a && idx !== i1b && idx !== i2a) || 0;
+
+            if(i1a === i1b || i2a === i2b) {
+                activeWarning = "Invalid pairs. A pair must consist of two different points.";
+                return;
+            }
+
+            lines.L1 = perpBisector(points.C[i1a], points.C[i1b]);
+            lines.L2 = perpBisector(points.C[i2a], points.C[i2b]);
+
+            if(lines.L1 && lines.L2) {
+                points.HR = lineIntersection(lines.L1.p1, lines.L1.p2, lines.L2.p1, lines.L2.p2);
+            } else { points.HR = null; activeWarning = "Points are coincident. Cannot compute H_R."; return; }
+            
+            if(!points.HR) { activeWarning = "Midnormals parallel. Cannot compute H_R."; return; }
+
+            if (currentStep >= 2) {
+                let angle1 = Math.atan2(lines.L1.p2.y - lines.L1.p1.y, lines.L1.p2.x - lines.L1.p1.x);
+                let angle2 = Math.atan2(lines.L2.p2.y - lines.L2.p1.y, lines.L2.p2.x - lines.L2.p1.x);
+                
+                // Align L1 to L2
+                let deltaTheta = angle2 - angle1;
+                let angle_C1 = Math.atan2(points.C[i1a].y - points.HR.y, points.C[i1a].x - points.HR.x);
+                let angle_C2 = Math.atan2(points.C[i2a].y - points.HR.y, points.C[i2a].x - points.HR.x);
+                
+                let angle_C1_aligned = angle_C1 + deltaTheta;
+                let alphaRad = radii.alpha * Math.PI / 180;
+                
+                let final_C1 = angle_C1_aligned + alphaRad;
+                let final_C2 = angle_C2 + alphaRad;
+                let final_axis = angle2 + alphaRad;
+
+                let V1 = {x: Math.cos(final_C1), y: Math.sin(final_C1)};
+                let V2 = {x: Math.cos(final_C2), y: Math.sin(final_C2)};
+                let Vaxis = {x: Math.cos(final_axis), y: Math.sin(final_axis)};
+
+                lines.L1p = { p1: points.HR, p2: {x: points.HR.x + V1.x*5000, y: points.HR.y + V1.y*5000}, p0: {x: points.HR.x - V1.x*5000, y: points.HR.y - V1.y*5000}, dir: V1 };
+                lines.L2p = { p1: points.HR, p2: {x: points.HR.x + V2.x*5000, y: points.HR.y + V2.y*5000}, p0: {x: points.HR.x - V2.x*5000, y: points.HR.y - V2.y*5000}, dir: V2 };
+                lines.axis_p = { p1: points.HR, p2: {x: points.HR.x + Vaxis.x*5000, y: points.HR.y + Vaxis.y*5000}, p0: {x: points.HR.x - Vaxis.x*5000, y: points.HR.y - Vaxis.y*5000}, dir: Vaxis };
+            }
+
+            if (currentStep >= 3 && lines.L1p && lines.L2p) {
+                let int1 = circleLineIntersection(points.C[i1a], radii.r, points.HR, lines.L1p.dir);
+                let int2 = circleLineIntersection(points.C[i2a], radii.r, points.HR, lines.L2p.dir);
+                points.A_p1 = int1.length > 0 ? int1[config.Ap1 % int1.length] : null;
+                points.A_p2 = int2.length > 0 ? int2[config.Ap2 % int2.length] : null;
+                if(!points.A_p1 || !points.A_p2) activeWarning = "Radius r is too small. Arcs do not intersect lines.";
+            } else { points.A_p1 = null; points.A_p2 = null; }
+
+            if (currentStep >= 4 && points.A_p1 && points.A_p2) {
+                lines.a_p12 = perpBisector(points.A_p1, points.A_p2);
+                if(lines.a_p12) {
+                    points.HC = lineIntersection(lines.a_p12.p1, lines.a_p12.p2, lines.axis_p.p0, lines.axis_p.p2);
+                } else { points.HC = null; activeWarning = "Crank pins are coincident."; }
+            } else { points.HC = null; }
+
+            if (currentStep >= 5 && points.HC && points.A_p1) {
+                let crankR = dist(points.HC, points.A_p1);
+                let int3 = circleIntersection(points.C[i3], radii.r, points.HC, crankR);
+                points.A_p3 = int3.length > 0 ? int3[config.Ap3 % int3.length] : null;
+                if(!points.A_p3) activeWarning = "Arc does not reach crank circle for 3rd point.";
+            } else { points.A_p3 = null; }
+
+            if (currentStep >= 6 && points.HR && points.A_p1 && points.A_p2 && points.A_p3) {
+                points.P2 = rigidTransform(points.HR, points.C[i2a], points.A_p2, points.C[i1a], points.A_p1);
+                points.P3 = rigidTransform(points.HR, points.C[i3], points.A_p3, points.C[i1a], points.A_p1);
+            } else { points.P2 = null; points.P3 = null; }
+
+            if (currentStep >= 7 && points.HR && points.P2 && points.P3) {
+                points.B1 = circumcenter(points.P2, points.HR, points.P3);
+                if(!points.B1) activeWarning = "Inverted points and H_R are collinear. Cannot compute B1.";
+            } else { points.B1 = null; }
+
+            if (currentStep >= 8 && points.B1) {
+                fullCouplerCurve = computeFullPath();
+                if (anim.initialized) anim.lengths = { L1: dist(points.HC, points.A_p1), L2: dist(points.A_p1, points.B1), L3: dist(points.HR, points.B1) };
+            } else {
+                fullCouplerCurve = []; circuitVisited = [false, false, false, false, false];
+            }
+            
+            setWarning(activeWarning);
+            updateCircuitDefectUI();
+        }
+
+        // --- DRAW FUNCTION ---
+        function draw() {
+            ctx.clearRect(0, 0, width, height); drawGrid();
+
+            let i1a = parseInt(document.getElementById('p1a_g5').value);
+            let i1b = parseInt(document.getElementById('p1b_g5').value);
+            let i2a = parseInt(document.getElementById('p2a_g5').value);
+            let i2b = parseInt(document.getElementById('p2b_g5').value);
+            
+            let usedIndices = [i1a, i1b, i2a, i2b];
+            let i3 = [0, 1, 2, 3, 4].find(idx => !usedIndices.includes(idx));
+            if (i3 === undefined) i3 = [0, 1, 2, 3, 4].find(idx => idx !== i1a && idx !== i1b && idx !== i2a) || 0;
+
+            if (fullCouplerCurve.length > 1) {
+                ctx.strokeStyle = 'rgba(255, 82, 82, 0.3)'; ctx.lineWidth = 2.5; ctx.setLineDash([6, 6]); ctx.beginPath();
+                let sp0 = toScreen(fullCouplerCurve[0]); ctx.moveTo(sp0.x, sp0.y);
+                for(let i=1; i<fullCouplerCurve.length; i++) { let sp = toScreen(fullCouplerCurve[i]); ctx.lineTo(sp.x, sp.y); }
+                ctx.stroke(); ctx.setLineDash([]);
+            }
+
+            if (anim.path && anim.path.length > 1) {
+                ctx.strokeStyle = 'rgba(255, 82, 82, 0.8)'; ctx.lineWidth = 3; ctx.beginPath();
+                let sp0 = toScreen(anim.path[0]); ctx.moveTo(sp0.x, sp0.y);
+                for(let i=1; i<anim.path.length; i++) { let sp = toScreen(anim.path[i]); ctx.lineTo(sp.x, sp.y); }
+                ctx.stroke();
+            }
+
+            if (currentStep >= 8 && fullCouplerCurve.length > 0) {
+                points.C.forEach((p, i) => { let color = circuitVisited[i] ? 'rgba(0, 230, 118, 0.9)' : 'rgba(255, 82, 82, 0.9)'; drawPoint(p, `C${i+1}`, color, 6); });
+            } else {
+                points.C.forEach((p, i) => drawPoint(p, `C${i+1}`, 'rgba(255, 82, 82, 0.9)', 6));
+            }
+
+            ctx.save();
+            if (currentStep >= 8) ctx.globalAlpha = 0.2; 
+            if (!showConstruction && currentStep >= 8) { ctx.restore(); drawFinalMechanism(); return; }
+
+            if (currentStep >= 1 && points.C.length >= 5) {
+                drawLine(points.C[i1a], points.C[i1b], '#666', true); drawLine(points.C[i2a], points.C[i2b], '#666', true);
+                if(lines.L1) drawLine(lines.L1.p1, lines.L1.p2, '#888', true);
+                if(lines.L2) drawLine(lines.L2.p1, lines.L2.p2, '#888', true);
+                drawGroundPivot(points.HR, 'H_R');
+            }
+
+            if (currentStep >= 2 && lines.L1p && lines.L2p) {
+                if(lines.axis_p) drawLine(lines.axis_p.p0, lines.axis_p.p2, '#888', true, 1.5);
+                drawLine(lines.L1p.p0, lines.L1p.p2, '#00e5ff', false, 1.5);
+                drawLine(lines.L2p.p0, lines.L2p.p2, '#00e5ff', false, 1.5);
+            }
+
+            if (currentStep >= 3) {
+                drawCircle(points.C[i1a], radii.r, '#777', true); drawCircle(points.C[i2a], radii.r, '#777', true);
+                if (points.A_p1) { drawLine(points.C[i1a], points.A_p1, '#ff9800', true); drawPoint(points.A_p1, 'A_p1', '#ff9800', 5); }
+                if (points.A_p2) { drawLine(points.C[i2a], points.A_p2, '#ff9800', true); drawPoint(points.A_p2, 'A_p2', '#ff9800', 5); }
+            }
+
+            if (currentStep >= 4 && points.HC && points.A_p1) {
+                if(lines.a_p12) drawLine(lines.a_p12.p1, lines.a_p12.p2, '#bbb', true);
+                drawGroundPivot(points.HC, 'H_C');
+                drawCircle(points.HC, dist(points.HC, points.A_p1), '#00e676');
+            }
+
+            if (currentStep >= 5 && points.HC && points.A_p1) {
+                drawCircle(points.C[i3], radii.r, '#777', true);
+                if (points.A_p3) { drawLine(points.C[i3], points.A_p3, '#ff9800', true); drawPoint(points.A_p3, 'A_p3', '#ff9800', 5); }
+            }
+
+            if (currentStep >= 6 && points.HR && points.A_p1 && points.A_p2 && points.A_p3) {
+                drawFilledTriangle(points.C[i2a], points.A_p2, points.HR, 'rgba(0, 229, 255, 0.15)', '#00e5ff');
+                drawFilledTriangle(points.C[i1a], points.A_p1, points.P2, 'rgba(0, 229, 255, 0.15)', '#00e5ff');
+                drawFilledTriangle(points.C[i3], points.A_p3, points.HR, 'rgba(255, 152, 0, 0.15)', '#ff9800');
+                drawFilledTriangle(points.C[i1a], points.A_p1, points.P3, 'rgba(255, 152, 0, 0.15)', '#ff9800');
+                
+                let labelP2 = 'Point ' + (i2a+1) + ',' + (i2b+1);
+                let labelP3 = 'Point ' + (i3+1);
+
+                drawPoint(points.P2, labelP2, '#e040fb'); 
+                drawPoint(points.P3, labelP3, '#e040fb');
+            }
+
+            if (currentStep >= 7 && points.P2 && points.P3 && points.HR) {
+                drawLine(points.HR, points.P2, '#666', true, 1);
+                drawLine(points.HR, points.P3, '#666', true, 1);
+                let bisect1 = perpBisector(points.HR, points.P2, 2000); let bisect2 = perpBisector(points.HR, points.P3, 2000);
+                if (bisect1) drawLine(bisect1.p1, bisect1.p2, '#00e676', true, 1.5);
+                if (bisect2) drawLine(bisect2.p1, bisect2.p2, '#00e676', true, 1.5);
+                if(points.B1) { drawCircle(points.B1, dist(points.B1, points.HR), '#b388ff', true); drawPoint(points.B1, 'B₁', '#b388ff', 6); } 
+            }
+            ctx.restore();
+
+            drawFinalMechanism();
+        }
+
+        function drawFinalMechanism() {
+            let i1a = parseInt(document.getElementById('p1a_g5').value);
+            if (currentStep >= 8 && points.HC && points.B1 && points.A_p1 && points.HR) {
+                let drawA = anim.initialized ? anim.A_current : points.A_p1;
+                let drawB = anim.initialized ? anim.B_current : points.B1;
+                let drawC = anim.initialized ? anim.C_current : points.C[i1a];
+
+                drawLine(points.HC, points.HR, '#aaaaaa', true, 2); 
+                drawLine(points.HC, drawA, '#ff5252', false, 4); 
+                drawLine(points.HR, drawB, '#69f0ae', false, 4); 
+                
+                let spA = toScreen(drawA), spB = toScreen(drawB), spC = toScreen(drawC);
+                ctx.fillStyle = 'rgba(255, 215, 0, 0.2)'; ctx.strokeStyle = '#ffd700'; ctx.lineWidth = 2;
+                ctx.beginPath(); ctx.moveTo(spA.x, spA.y); ctx.lineTo(spB.x, spB.y); ctx.lineTo(spC.x, spC.y);
+                ctx.closePath(); ctx.fill(); ctx.stroke();
+
+                drawGroundPivot(points.HC, 'H_C'); drawGroundPivot(points.HR, 'H_R'); 
+
+                drawPoint(drawA, 'A', '#ff9800', 6); drawPoint(drawB, 'B₁', '#fff', 6); 
+                drawPoint(drawC, anim.initialized ? 'Tracker' : 'C_base', '#ff5252', 6); 
+            }
+        }
+
+        function animationLoop() {
+            if (!anim.playing) return;
+            anim.angle += (anim.speedMult * anim.dir);
+            let HC = points.HC, HR = points.HR;
+            let i1a = parseInt(document.getElementById('p1a_g5').value);
+
+            let A_next = { x: HC.x + anim.lengths.L1 * Math.cos(anim.angle), y: HC.y + anim.lengths.L1 * Math.sin(anim.angle) };
+            let intersects = circleIntersection(A_next, anim.lengths.L2, HR, anim.lengths.L3);
+            if (intersects.length === 0) {
+                anim.dir *= -1; anim.angle += (anim.speedMult * anim.dir * 2); 
+            } else {
+                let B_next = intersects[0];
+                if (intersects.length > 1) {
+                    let d1 = dist(intersects[0], anim.lastB); let d2 = dist(intersects[1], anim.lastB);
+                    if (d2 < d1) B_next = intersects[1];
+                }
+                anim.lastB = B_next; anim.A_current = A_next; anim.B_current = B_next;
+                anim.C_current = rigidTransform(points.C[i1a], points.A_p1, points.B1, A_next, B_next);
+                anim.path.push(anim.C_current);
+                if(anim.path.length > 800) anim.path.shift();
+            }
+            draw(); anim.reqId = requestAnimationFrame(animationLoop);
+        }
+
+        // --- UI UPDATES ---
+        function updateCircuitDefectUI() {
+            let checkEl = document.getElementById('config-circuit-check_g5');
+            if (!checkEl) return;
+            
+            if (currentStep >= 8 && fullCouplerCurve.length > 0) {
+                let reached = circuitVisited.filter(v => v).length;
+                checkEl.style.display = 'block';
+                if (reached === 5) { checkEl.innerHTML = `✅ All 5 points on same circuit`; checkEl.style.color = 'var(--accent-done)'; } 
+                else { checkEl.innerHTML = `⚠️ Circuit defect: ${reached}/5 points reached`; checkEl.style.color = '#ff5252'; }
+            } else { checkEl.style.display = 'none'; }
+        }
+
+        function updateUI() {
+            for (let i = 0; i < stepsInfo.length; i++) { let el = document.getElementById(`step-${i}_g5`); if(el) el.className = `step ${i === currentStep ? 'active' : ''} ${i < currentStep ? 'done' : ''}`; }
+            let activeEl = document.getElementById(`step-${currentStep}_g5`);
+            if (activeEl && activeEl.scrollIntoView) { activeEl.scrollIntoView({ behavior: "smooth", block: "nearest" }); }
+
+            document.getElementById('step1-controls_g5').style.display = (currentStep >= 1) ? 'flex' : 'none';
+            document.getElementById('slider-alpha-group_g5').style.display = (currentStep === 2 || currentStep === 3) ? 'flex' : 'none';
+            document.getElementById('slider-r-group_g5').style.display = (currentStep === 3 || currentStep === 5) ? 'flex' : 'none';
+            document.getElementById('config-panel_g5').style.display = (currentStep >= 3) ? 'flex' : 'none';
+            document.getElementById('btn-next_g5').style.display = (currentStep < 8) ? 'block' : 'none';
+            document.getElementById('btn-toggle-const_g5').style.display = (currentStep >= 8) ? 'block' : 'none';
+            document.getElementById('animation-palette_g5').style.display = (currentStep >= 8) ? 'flex' : 'none';
+
+            let elA2 = document.getElementById('btn-cfg-ap2_g5'); if(elA2) elA2.disabled = currentStep < 3;
+            let elA3 = document.getElementById('btn-cfg-ap3_g5'); if(elA3) elA3.disabled = currentStep < 5;
+
+            document.getElementById('btn-cfg-ap1_g5').innerText = `A(P1): ${config.Ap1 === 0 ? '●1 / 2' : '1 / ●2'}`;
+            document.getElementById('btn-cfg-ap2_g5').innerText = `A(P2): ${config.Ap2 === 0 ? '●1 / 2' : '1 / ●2'}`;
+            document.getElementById('btn-cfg-ap3_g5').innerText = `A(P3): ${config.Ap3 === 0 ? '●1 / 2' : '1 / ●2'}`;
+            
+            updateCircuitDefectUI();
+        }
+
+        function initUI() {
+            const container = document.getElementById('steps-container_g5'); if(!container) return;
+            container.innerHTML = '';
+            stepsInfo.forEach((step, i) => {
+                let div = document.createElement('div'); div.className = `step ${i === currentStep ? 'active' : ''} ${i < currentStep ? 'done' : ''}`; div.id = `step-${i}_g5`;
+                div.innerHTML = `<div class="step-title">${step.title}</div><div class="step-desc">${step.desc}</div>`; container.appendChild(div);
+            });
+            updateUI();
+        }
+
+        // --- INTERACTION ---
+        function stopAnimationHelper() {
+            anim.initialized = false; anim.playing = false; cancelAnimationFrame(anim.reqId);
+            let btnPlay = document.getElementById('btn-play-pause_g5');
+            if (btnPlay) { btnPlay.innerText = "Play Simulation"; btnPlay.style.backgroundColor = "var(--accent-done)"; btnPlay.style.color = "#000"; }
+        }
+
+        function autoFit() {
+            let allPoints = [];
+            if (points.C && points.C.length) allPoints.push(...points.C);
+            if (points.HR) allPoints.push(points.HR); if (points.HC) allPoints.push(points.HC);
+            if (points.A_p1) allPoints.push(points.A_p1); if (points.B1) allPoints.push(points.B1);
+            if (currentStep >= 3 && points.HR) { allPoints.push({x: points.HR.x + radii.r, y: points.HR.y + radii.r}); allPoints.push({x: points.HR.x - radii.r, y: points.HR.y - radii.r}); }
+            if (currentStep >= 4 && points.HC && points.A_p1) { let crankR = dist(points.HC, points.A_p1); allPoints.push({x: points.HC.x + crankR, y: points.HC.y + crankR}); allPoints.push({x: points.HC.x - crankR, y: points.HC.y - crankR}); }
+            if (fullCouplerCurve && fullCouplerCurve.length) allPoints.push(...fullCouplerCurve);
+            if (anim.path && anim.path.length) allPoints.push(...anim.path);
+            
+            if (allPoints.length === 0) return; 
+
+            let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+            allPoints.forEach(p => { if (p.x < minX) minX = p.x; if (p.x > maxX) maxX = p.x; if (p.y < minY) minY = p.y; if (p.y > maxY) maxY = p.y; });
+            let wX = maxX - minX; let wY = maxY - minY;
+            if (wX === 0) wX = 100; if (wY === 0) wY = 100;
+            let padX = wX * 0.15; let padY = wY * 0.15;
+            minX -= padX; maxX += padX; minY -= padY; maxY += padY; wX = maxX - minX; wY = maxY - minY;
+
+            let scaleX = width / wX; let scaleY = height / wY;
+            let newScale = Math.min(scaleX, scaleY); newScale = Math.min(Math.max(newScale, 0.1), 10); 
+            let cx = (minX + maxX) / 2; let cy = (minY + maxY) / 2;
+            transform.k = newScale; transform.x = width / 2 - cx * newScale; transform.y = height / 2 - cy * newScale;
+
+            let zoomPct = Math.round(newScale * 100); let sld = document.getElementById('slider-zoom_g5'); let vld = document.getElementById('val-zoom_g5');
+            if(sld) sld.value = zoomPct; if(vld) vld.innerText = zoomPct; draw();
+        }
+
+        function resize() { if (canvas.parentElement.clientWidth === 0) return; canvas.width = canvas.parentElement.clientWidth; canvas.height = canvas.parentElement.clientHeight; width = canvas.width; height = canvas.height; draw(); }
+        window.addEventListener('resize', resize);
+        
+        let baf = document.getElementById('btn-autofit_g5'); if(baf) baf.addEventListener('click', autoFit);
+
+        ['p1a_g5', 'p1b_g5', 'p2a_g5', 'p2b_g5'].forEach(id => {
+            let el = document.getElementById(id);
+            if (el) {
+                el.addEventListener('change', () => {
+                    stopAnimationHelper(); recalculate(); updateUI();
+                    if (currentStep > 0) autoFit(); else draw();
+                });
+            }
+        });
+
+        ['ap1','ap2','ap3'].forEach((a) => {
+            let btn = document.getElementById(`btn-cfg-${a}_g5`);
+            if(btn) btn.addEventListener('click', () => {
+                stopAnimationHelper(); let key = a.toUpperCase(); config[key] = 1 - config[key];
+                recalculate(); updateUI(); autoFit();
+            });
+        });
+
+        canvas.addEventListener('mousedown', (e) => { 
+            isPanning = true; hasMoved = false; startPan = { x: e.clientX - transform.x, y: e.clientY - transform.y }; 
+        });
+        window.addEventListener('mousemove', (e) => {
+            if (isPanning) {
+                let newX = e.clientX - startPan.x; let newY = e.clientY - startPan.y;
+                if (Math.abs(newX - transform.x) > 3 || Math.abs(newY - transform.y) > 3) hasMoved = true;
+                transform.x = newX; transform.y = newY; if(!anim.playing) draw();
+            }
+        });
+        window.addEventListener('mouseup', () => { isPanning = false; });
+        canvas.addEventListener('wheel', (e) => {
+            e.preventDefault(); const zoomSensitivity = 0.001; const delta = -e.deltaY * zoomSensitivity;
+            const newScale = Math.min(Math.max(0.1, transform.k * Math.exp(delta)), 10);
+            const rect = canvas.getBoundingClientRect(); const mouseX = e.clientX - rect.left; const mouseY = e.clientY - rect.top;
+            transform.x = mouseX - (mouseX - transform.x) * (newScale / transform.k); transform.y = mouseY - (mouseY - transform.y) * (newScale / transform.k); transform.k = newScale;
+            let zoomPct = Math.round(newScale * 100); let sld = document.getElementById('slider-zoom_g5'); if(sld) sld.value = zoomPct; 
+            let vld = document.getElementById('val-zoom_g5'); if(vld) vld.innerText = zoomPct; if(!anim.playing) draw();
+        }, {passive: false});
+
+        canvas.addEventListener('click', (e) => {
+            if (hasMoved) return; 
+            const rect = canvas.getBoundingClientRect(); const p = toWorld({x: e.clientX - rect.left, y: e.clientY - rect.top}); 
+            if (currentStep === 0 && points.C.length < 5) { points.C.push(p); draw(); }
+            updateUI();
+        });
+
+        let sA = document.getElementById('slider-alpha_g5'); if(sA) sA.addEventListener('input', (e) => { radii.alpha = parseInt(e.target.value); document.getElementById('val-alpha_g5').innerText = radii.alpha; stopAnimationHelper(); recalculate(); draw(); });
+        let sr = document.getElementById('slider-r_g5'); if(sr) sr.addEventListener('input', (e) => { radii.r = parseInt(e.target.value); document.getElementById('val-r_g5').innerText = radii.r; stopAnimationHelper(); recalculate(); draw(); });
+        let sZ = document.getElementById('slider-zoom_g5'); if(sZ) sZ.addEventListener('input', (e) => {
+            let zoomPct = parseInt(e.target.value); document.getElementById('val-zoom_g5').innerText = zoomPct;
+            let newScale = zoomPct / 100; let centerX = width / 2; let centerY = height / 2;
+            transform.x = centerX - (centerX - transform.x) * (newScale / transform.k); transform.y = centerY - (centerY - transform.y) * (newScale / transform.k); transform.k = newScale;
+            if(!anim.playing) draw();
+        });
+        let sS = document.getElementById('slider-speed_g5'); if(sS) sS.addEventListener('input', (e) => { let val = parseInt(e.target.value); document.getElementById('val-speed_g5').innerText = val; anim.speedMult = val * 0.0005; });
+        
+        let tgl = document.getElementById('btn-toggle-const_g5'); if(tgl) tgl.addEventListener('click', (e) => {
+            showConstruction = !showConstruction; e.target.innerText = showConstruction ? "Hide Construction" : "Show Construction"; if(!anim.playing) draw();
+        });
+
+        let ply = document.getElementById('btn-play-pause_g5'); if(ply) ply.addEventListener('click', (e) => {
+            if(currentStep < 8 || !points.HC || !points.HR || !points.A_p1 || !points.B1) return;
+            if (!anim.initialized) {
+                anim.initialized = true; anim.playing = true;
+                anim.angle = Math.atan2(points.A_p1.y - points.HC.y, points.A_p1.x - points.HC.x); anim.lastB = {x: points.B1.x, y: points.B1.y}; anim.path = []; anim.dir = 1;
+                anim.lengths = { L1: dist(points.HC, points.A_p1), L2: dist(points.A_p1, points.B1), L3: dist(points.HR, points.B1) };
+                animationLoop();
+            } else {
+                anim.playing = !anim.playing;
+                if (anim.playing) animationLoop(); else cancelAnimationFrame(anim.reqId);
+            }
+            e.target.innerText = anim.playing ? "Pause" : "Play Simulation";
+            e.target.style.backgroundColor = anim.playing ? "#ffb300" : "var(--accent-done)"; e.target.style.color = "#000";
+            updateUI();
+        });
+
+        let stp = document.getElementById('btn-stop-anim_g5'); if(stp) stp.addEventListener('click', () => { stopAnimationHelper(); anim.path = []; draw(); updateUI(); });
+
+        let nxt = document.getElementById('btn-next_g5'); if(nxt) nxt.addEventListener('click', () => {
+            if (currentStep === 0 && points.C.length < 5) { alert("Please place 5 precision points on the canvas first."); return; }
+            if (currentStep < 8) {
+                currentStep++; recalculate(); updateUI(); if (currentStep > 0) autoFit(); 
+            }
+        });
+
+        let rst = document.getElementById('btn-reset_g5'); if(rst) rst.addEventListener('click', () => {
+            stopAnimationHelper(); currentStep = 0; showConstruction = true; 
+            let tglC = document.getElementById('btn-toggle-const_g5'); if(tglC) tglC.innerText = "Hide Construction";
+            points = { C: [], HR: null, A_p1: null, A_p2: null, HC: null, A_p3: null, P2: null, P3: null, B1: null };
+            lines = { L1: null, L2: null, L1p: null, L2p: null, axis_p: null, a_p12: null };
+            fullCouplerCurve = []; circuitVisited = [false, false, false, false, false]; anim.path = [];
+            config = { Ap1: 0, Ap2: 0, Ap3: 0 }; radii = { alpha: 0, r: 100 };
+            document.getElementById('slider-alpha_g5').value = 0; document.getElementById('val-alpha_g5').innerText = 0;
+            document.getElementById('slider-r_g5').value = 100; document.getElementById('val-r_g5').innerText = 100;
+            document.getElementById('btn-cfg-ap1_g5').innerText = "A(P1): ●1 / 2"; document.getElementById('btn-cfg-ap2_g5').innerText = "A(P2): ●1 / 2"; document.getElementById('btn-cfg-ap3_g5').innerText = "A(P3): ●1 / 2";
+            transform = { x: 0, y: 0, k: 1 }; let sld = document.getElementById('slider-zoom_g5'); if(sld) sld.value = 100; let vld = document.getElementById('val-zoom_g5'); if(vld) vld.innerText = 100;
+            updateUI(); draw();
+        });
+
+        let bck = document.getElementById('btn-back_g5'); if(bck) bck.addEventListener('click', () => {
+            stopAnimationHelper(); if(currentStep > 0) currentStep--;
+            if(currentStep < 8) { fullCouplerCurve = []; circuitVisited = [false, false, false, false, false]; anim.path = []; }
+            if(currentStep === 0) points.C = [];
+            showConstruction = true; let tglC = document.getElementById('btn-toggle-const_g5'); if(tglC) tglC.innerText = "Hide Construction";
+            recalculate(); updateUI(); if (currentStep > 0) autoFit(); else draw();
+        });
+
+        initUI(); setTimeout(resize, 50);
+
+    } catch (err) {
+        const errBox = document.getElementById('steps-container_g5');
+        if (errBox) { errBox.innerHTML = '<div style="color:#ff5252; padding:15px; font-weight:bold; word-wrap: break-word;">Engine Error:<br><br>' + err.message + '<br><br>' + err.stack + '</div>'; } 
+        else { alert("Fatal Error: " + err.message); }
+    }
+})();
+
+// ===========================================
+// ====== 3. ANALYTICAL ENGINE (SANDBOXED) ======
+// ===========================================
+(function() {
+    try {
+        const canvas = document.getElementById('mechCanvas_a');
+        const ctx = canvas.getContext('2d');
+        const warningBox = document.getElementById('warning-box_a');
+        let width, height;
+
+        const C = {
+            add: (a, b) => ({x: a.x + b.x, y: a.y + b.y}),
+            sub: (a, b) => ({x: a.x - b.x, y: a.y - b.y}),
+            mul: (a, b) => ({x: a.x*b.x - a.y*b.y, y: a.x*b.y + a.y*b.x}),
+            div: (a, b) => { let den = b.x*b.x + b.y*b.y; return {x: (a.x*b.x + a.y*b.y)/den, y: (a.y*b.x - a.x*b.y)/den}; },
+            conj: (a) => ({x: a.x, y: -a.y}),
+            magSq: (a) => a.x*a.x + a.y*a.y,
+            exp: (theta) => ({x: Math.cos(theta), y: Math.sin(theta)}),
+            real: 1
+        };
+
+        let currentStep = 0;
+        let R = []; 
+        let params = {
+            phi: [15 * Math.PI/180, 30 * Math.PI/180, 45 * Math.PI/180], 
+            gam2_1: 20 * Math.PI/180, 
+            root_1: 0,
+            gam2_2: 45 * Math.PI/180, 
+            root_2: 0
+        };
+
+        let dyad1 = null; 
+        let dyad2 = null;
+        let fullCouplerCurve = []; 
+        let circuitVisited = [false, false, false, false]; 
+
+        let transform = { x: 0, y: 0, k: 1 };
+        let isPanning = false, hasMoved = false, startPan = { x: 0, y: 0 };
+        let anim = { initialized: false, playing: false, reqId: null, angle: 0, speedMult: 0.025, dir: 1, lastB: null, path: [], lengths: {}, A_current: null, B_current: null, C_current: null };
+
+        const stepsInfo = [
+            { title: "STEP 0: Setup", desc: "Click to place 4 precision points on the canvas: C₁, C₂, C₃, C₄." },
+            { title: "STEP 1: Coupler Kinematics", desc: "Set the desired Coupler angles (φ) for positions 2, 3, and 4 relative to position 1." },
+            { title: "STEP 2: Synthesize Crank Dyad", desc: "Adjust the free choice parameter γ₂ (Crank angle) to analytically solve for the Left Dyad (H_C and A₁). If no roots exist, the lines disappear." },
+            { title: "STEP 3: Synthesize Follower Dyad", desc: "Adjust the free choice parameter γ₂' (Follower angle) to solve for the Right Dyad (H_R and B₁)." },
+            { title: "STEP 4: Final Mechanism", desc: "The four-bar linkage is fully synthesized analytically. Press Play to trace the motion." }
+        ];
+
+        function toScreen(p) { return { x: p.x * transform.k + transform.x, y: p.y * transform.k + transform.y }; }
+        function toWorld(p) { return { x: (p.x - transform.x) / transform.k, y: (p.y - transform.y) / transform.k }; }
+
+        function setWarning(msg) {
+            if (msg) { warningBox.innerHTML = msg; warningBox.style.display = 'block'; } 
+            else { warningBox.style.display = 'none'; }
+        }
+
+        function solveDyad(R_pts, phiAngles, gam2Angle, rootIdx) {
+            if (R_pts.length < 4) return null;
+
+            let d2 = C.sub(R_pts[1], R_pts[0]);
+            let d3 = C.sub(R_pts[2], R_pts[0]);
+            let d4 = C.sub(R_pts[3], R_pts[0]);
+
+            let ep2 = C.sub(C.exp(phiAngles[0]), {x:1, y:0});
+            let ep3 = C.sub(C.exp(phiAngles[1]), {x:1, y:0});
+            let ep4 = C.sub(C.exp(phiAngles[2]), {x:1, y:0});
+
+            let eg2 = C.sub(C.exp(gam2Angle), {x:1, y:0});
+
+            let D2 = C.sub(C.mul(d3, ep4), C.mul(d4, ep3));
+            let D3 = C.sub(C.mul(d4, ep2), C.mul(d2, ep4));
+            let D4 = C.sub(C.mul(d2, ep3), C.mul(d3, ep2));
+
+            let D1 = C.sub(C.sub(C.mul(eg2, D2), D3), D4);
+
+            let A = C.mul(C.conj(D1), D3).x;
+            let B = C.mul(C.conj(D1), D3).y;
+            let c_val = C.magSq(D1) + C.magSq(D3) - C.magSq(D4);
+
+            let disc = 4*A*A + 4*B*B - c_val*c_val;
+            if (disc < 0) return null; 
+
+            let root = Math.sqrt(disc);
+            let sign = rootIdx === 0 ? -1 : 1;
+            let gam3 = 2 * Math.atan((2*B + sign*root) / (c_val - 2*A));
+
+            let eg3 = C.sub(C.exp(gam3), {x:1, y:0});
+
+            let a = ep2, b = eg2;
+            let c = ep3, d = eg3;
+            let det = C.sub(C.mul(a, d), C.mul(b, c));
+            
+            if (C.magSq(det) < 1e-12) return null;
+
+            let ev = d2, fv = d3;
+            let Z3 = C.div( C.sub(C.mul(ev, d), C.mul(b, fv)), det ); 
+            let Z2 = C.div( C.sub(C.mul(a, fv), C.mul(ev, c)), det ); 
+
+            let Z0 = C.sub(C.sub(R_pts[0], Z2), Z3); 
+
+            return { Z0: Z0, Z2: Z2, Z3: Z3 };
+        }
+
+        function dist(p1, p2) { return Math.hypot(p2.x - p1.x, p2.y - p1.y); }
+        
+        function circleIntersection(center1, r1, center2, r2) {
+            let d = dist(center1, center2);
+            if (d > r1 + r2 || d < Math.abs(r1 - r2) || d === 0) return []; 
+            let a = (r1*r1 - r2*r2 + d*d) / (2*d);
+            let h = Math.sqrt(Math.max(0, r1*r1 - a*a));
+            let p2 = { x: center1.x + a * (center2.x - center1.x) / d, y: center1.y + a * (center2.y - center1.y) / d };
+            return [
+                { x: p2.x + h * (center2.y - center1.y) / d, y: p2.y - h * (center2.x - center1.x) / d },
+                { x: p2.x - h * (center2.y - center1.y) / d, y: p2.y + h * (center2.x - center1.x) / d }
+            ];
+        }
+
+        function rigidTransform(p, frameP1, frameP2, targetP1, targetP2) {
+            let angleFrame = Math.atan2(frameP2.y - frameP1.y, frameP2.x - frameP1.x);
+            let angleTarget = Math.atan2(targetP2.y - targetP1.y, targetP2.x - targetP1.x);
+            let deltaAngle = angleTarget - angleFrame;
+            let vx = p.x - frameP1.x; let vy = p.y - frameP1.y;
+            let rx = vx * Math.cos(deltaAngle) - vy * Math.sin(deltaAngle);
+            let ry = vx * Math.sin(deltaAngle) + vy * Math.cos(deltaAngle);
+            return { x: targetP1.x + rx, y: targetP1.y + ry };
+        }
+
+        function computeFullPath() {
+            if(!dyad1 || !dyad2) return [];
+            let HC = dyad1.Z0, A1 = C.add(dyad1.Z0, dyad1.Z2);
+            let HR = dyad2.Z0, B1 = C.add(dyad2.Z0, dyad2.Z2);
+            let C1 = R[0];
+
+            let L1 = dist(HC, A1), L2 = dist(A1, B1), L3 = dist(HR, B1);
+            let startAngle = Math.atan2(A1.y - HC.y, A1.x - HC.x);
+            let lastB = {x: B1.x, y: B1.y};
+
+            let step = 0.01; let maxSteps = (Math.PI * 2) / step + 10;
+            let forwardPath = [], backwardPath = [];
+            
+            let theta = startAngle;
+            for(let i=0; i<maxSteps; i++) {
+                let A_next = { x: HC.x + L1 * Math.cos(theta), y: HC.y + L1 * Math.sin(theta) };
+                let intersects = circleIntersection(A_next, L2, HR, L3);
+                if(intersects.length === 0) break;
+                let B_next = intersects[0];
+                if(intersects.length > 1 && dist(intersects[1], lastB) < dist(intersects[0], lastB)) B_next = intersects[1];
+                lastB = B_next;
+                forwardPath.push(rigidTransform(C1, A1, B1, A_next, B_next));
+                theta += step;
+            }
+
+            theta = startAngle - step; lastB = {x: B1.x, y: B1.y};
+            for(let i=0; i<maxSteps; i++) {
+                let A_next = { x: HC.x + L1 * Math.cos(theta), y: HC.y + L1 * Math.sin(theta) };
+                let intersects = circleIntersection(A_next, L2, HR, L3);
+                if(intersects.length === 0) break; 
+                let B_next = intersects[0];
+                if(intersects.length > 1 && dist(intersects[1], lastB) < dist(intersects[0], lastB)) B_next = intersects[1];
+                lastB = B_next;
+                backwardPath.push(rigidTransform(C1, A1, B1, A_next, B_next));
+                theta -= step;
+            }
+
+            backwardPath.reverse();
+            let finalPath = backwardPath.concat(forwardPath);
+
+            circuitVisited = [false, false, false, false];
+            R.forEach((c, idx) => {
+                let minDist = Infinity;
+                finalPath.forEach(p => { let d = dist(c, p); if (d < minDist) minDist = d; });
+                if (minDist < 12) circuitVisited[idx] = true; 
+            });
+
+            return finalPath;
+        }
+
+        function drawPoint(p, label, color = '#fff', size = 5) {
+            if (!p) return;
+            let sp = toScreen(p);
+            ctx.fillStyle = color; ctx.beginPath(); ctx.arc(sp.x, sp.y, size, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = '#fff'; ctx.font = '600 14px Montserrat, sans-serif'; ctx.fillText(label, sp.x + 8, sp.y - 8);
+        }
+
+        function drawLine(p1, p2, color = '#666', dashed = false, thick = 1.5) {
+            if(!p1 || !p2) return;
+            let sp1 = toScreen(p1), sp2 = toScreen(p2);
+            ctx.strokeStyle = color; ctx.lineWidth = thick;
+            ctx.setLineDash(dashed ? [5, 5] : []);
+            ctx.beginPath(); ctx.moveTo(sp1.x, sp1.y); ctx.lineTo(sp2.x, sp2.y); ctx.stroke();
+            ctx.setLineDash([]);
+        }
+
+        function drawGroundPivot(p, label) {
+            if (!p) return;
+            let sp = toScreen(p);
+            ctx.fillStyle = '#ccc'; ctx.strokeStyle = '#ccc'; ctx.lineWidth = 1.5; ctx.setLineDash([]);
+            ctx.beginPath(); ctx.moveTo(sp.x, sp.y); ctx.lineTo(sp.x - 12, sp.y + 18); ctx.lineTo(sp.x + 12, sp.y + 18); ctx.closePath(); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(sp.x - 18, sp.y + 18); ctx.lineTo(sp.x + 18, sp.y + 18); ctx.stroke();
+            for(let i = -12; i <= 12; i += 6) { ctx.beginPath(); ctx.moveTo(sp.x + i, sp.y + 18); ctx.lineTo(sp.x + i - 6, sp.y + 26); ctx.stroke(); }
+            ctx.fillStyle = '#fff'; ctx.font = 'bold 16px Montserrat, sans-serif'; ctx.fillText(label, sp.x + 18, sp.y + 5);
+            ctx.fillStyle = '#1e1e1e'; ctx.beginPath(); ctx.arc(sp.x, sp.y, 4, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+        }
+
+        function drawGrid() {
+            ctx.strokeStyle = '#333'; ctx.lineWidth = 1; const gridSize = 50; 
+            let tl = toWorld({x: 0, y: 0}), br = toWorld({x: width, y: height});
+            let startX = Math.floor(tl.x / gridSize) * gridSize, startY = Math.floor(tl.y / gridSize) * gridSize;
+            for (let x = startX; x <= br.x; x += gridSize) { let sp1 = toScreen({x: x, y: tl.y}), sp2 = toScreen({x: x, y: br.y}); ctx.beginPath(); ctx.moveTo(sp1.x, sp1.y); ctx.lineTo(sp2.x, sp2.y); ctx.stroke(); }
+            for (let y = startY; y <= br.y; y += gridSize) { let sp1 = toScreen({x: tl.x, y: y}), sp2 = toScreen({x: br.x, y: y}); ctx.beginPath(); ctx.moveTo(sp1.x, sp1.y); ctx.lineTo(sp2.x, sp2.y); ctx.stroke(); }
+        }
+
+        function autoFit() {
+            let allPoints = [];
+            if (R && R.length) allPoints.push(...R);
+            if (dyad1) { allPoints.push(dyad1.Z0); allPoints.push(C.add(dyad1.Z0, dyad1.Z2)); }
+            if (dyad2) { allPoints.push(dyad2.Z0); allPoints.push(C.add(dyad2.Z0, dyad2.Z2)); }
+            if (fullCouplerCurve && fullCouplerCurve.length) allPoints.push(...fullCouplerCurve);
+            if (anim.path && anim.path.length) allPoints.push(...anim.path);
+            
+            if (allPoints.length === 0) return; 
+
+            let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+            allPoints.forEach(p => { if(p.x < minX) minX = p.x; if(p.x > maxX) maxX = p.x; if(p.y < minY) minY = p.y; if(p.y > maxY) maxY = p.y; });
+            
+            let wX = maxX - minX; let wY = maxY - minY;
+            if (wX === 0) wX = 100; if (wY === 0) wY = 100;
+
+            let padX = wX * 0.15; let padY = wY * 0.15;
+            minX -= padX; maxX += padX; minY -= padY; maxY += padY;
+            wX = maxX - minX; wY = maxY - minY;
+
+            let scaleX = width / wX; let scaleY = height / wY;
+            let newScale = Math.min(scaleX, scaleY);
+            newScale = Math.min(Math.max(newScale, 0.1), 10); 
+
+            let cx = (minX + maxX) / 2; let cy = (minY + maxY) / 2;
+
+            transform.k = newScale;
+            transform.x = width / 2 - cx * newScale;
+            transform.y = height / 2 - cy * newScale;
+
+            let zoomPct = Math.round(newScale * 100);
+            let sld = document.getElementById('slider-zoom_a'); let vld = document.getElementById('val-zoom_a');
+            if(sld) sld.value = zoomPct; if(vld) vld.innerText = zoomPct;
+            draw();
+        }
+
+        function recalculate() {
+            let warningMsg = "";
+
+            if(currentStep >= 2) {
+                dyad1 = solveDyad(R, params.phi, params.gam2_1, params.root_1);
+                if(!dyad1) warningMsg += "⚠️ <b>Math Error (Left Dyad):</b> No real roots exist for this γ₂.<br>";
+            } else { dyad1 = null; }
+
+            if(currentStep >= 3) {
+                dyad2 = solveDyad(R, params.phi, params.gam2_2, params.root_2);
+                if(!dyad2) warningMsg += "<br>⚠️ <b>Math Error (Right Dyad):</b> No real roots exist for this γ₂'.";
+            } else { dyad2 = null; }
+
+            setWarning(warningMsg);
+
+            if(currentStep >= 4 && dyad1 && dyad2) {
+                fullCouplerCurve = computeFullPath();
+            } else {
+                fullCouplerCurve = []; circuitVisited = [false, false, false, false];
+            }
+            
+            let defectEl = document.getElementById('defect-flag_a');
+            if(!defectEl) return;
+            
+            if (currentStep >= 4 && fullCouplerCurve.length > 0) {
+                let reached = circuitVisited.filter(v => v).length;
+                defectEl.style.display = 'block';
+                if (reached === 4) { defectEl.innerHTML = `✅ All 4 points on same circuit`; defectEl.style.color = 'var(--accent-done)'; } 
+                else { defectEl.innerHTML = `⚠️ Circuit defect: ${reached}/4 points reached`; defectEl.style.color = '#ff5252'; }
+            } else { defectEl.style.display = 'none'; }
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, width, height); drawGrid();
+
+            if (fullCouplerCurve.length > 1) {
+                ctx.strokeStyle = 'rgba(255, 82, 82, 0.3)'; ctx.lineWidth = 2.5; ctx.setLineDash([6, 6]); ctx.beginPath();
+                let sp0 = toScreen(fullCouplerCurve[0]); ctx.moveTo(sp0.x, sp0.y);
+                for(let i=1; i<fullCouplerCurve.length; i++) { let sp = toScreen(fullCouplerCurve[i]); ctx.lineTo(sp.x, sp.y); }
+                ctx.stroke(); ctx.setLineDash([]);
+            }
+
+            if (anim.path && anim.path.length > 1) {
+                ctx.strokeStyle = 'rgba(255, 82, 82, 0.8)'; ctx.lineWidth = 3; ctx.beginPath();
+                let sp0 = toScreen(anim.path[0]); ctx.moveTo(sp0.x, sp0.y);
+                for(let i=1; i<anim.path.length; i++) { let sp = toScreen(anim.path[i]); ctx.lineTo(sp.x, sp.y); }
+                ctx.stroke();
+            }
+
+            if (currentStep >= 4 && fullCouplerCurve.length > 0) {
+                R.forEach((p, i) => { let color = circuitVisited[i] ? 'rgba(0, 230, 118, 0.9)' : 'rgba(255, 82, 82, 0.9)'; drawPoint(p, `C${i+1}`, color, 6); });
+            } else {
+                R.forEach((p, i) => drawPoint(p, `C${i+1}`, 'rgba(255, 82, 82, 0.9)', 6));
+            }
+
+            ctx.save();
+            if (currentStep >= 4) ctx.globalAlpha = 0.2; 
+
+            if (dyad1) {
+                let HC = dyad1.Z0, A1 = C.add(dyad1.Z0, dyad1.Z2);
+                drawGroundPivot(HC, 'H_C');
+                drawLine(HC, A1, '#00e676', false, 3);
+                drawLine(A1, R[0], '#ff9800', true, 2);
+                drawPoint(A1, 'A₁', '#ff9800', 5);
+            }
+
+            if (dyad2) {
+                let HR = dyad2.Z0, B1 = C.add(dyad2.Z0, dyad2.Z2);
+                drawGroundPivot(HR, 'H_R');
+                drawLine(HR, B1, '#b388ff', false, 3);
+                drawLine(B1, R[0], '#ff9800', true, 2);
+                drawPoint(B1, 'B₁', '#ff9800', 5);
+            }
+            ctx.restore();
+
+            if (currentStep >= 4 && dyad1 && dyad2) {
+                let HC = dyad1.Z0, HR = dyad2.Z0;
+                let drawA = anim.initialized ? anim.A_current : C.add(dyad1.Z0, dyad1.Z2);
+                let drawB = anim.initialized ? anim.B_current : C.add(dyad2.Z0, dyad2.Z2);
+                let drawC = anim.initialized ? anim.C_current : R[0];
+
+                drawLine(HC, HR, '#aaaaaa', true, 2); 
+                drawLine(HC, drawA, '#00e676', false, 4); 
+                drawLine(HR, drawB, '#b388ff', false, 4); 
+                
+                let spA = toScreen(drawA), spB = toScreen(drawB), spC = toScreen(drawC);
+                ctx.fillStyle = 'rgba(255, 215, 0, 0.2)'; ctx.strokeStyle = '#ffd700'; ctx.lineWidth = 2;
+                ctx.beginPath(); ctx.moveTo(spA.x, spA.y); ctx.lineTo(spB.x, spB.y); ctx.lineTo(spC.x, spC.y);
+                ctx.closePath(); ctx.fill(); ctx.stroke();
+
+                drawGroundPivot(HC, 'H_C'); drawGroundPivot(HR, 'H_R');
+                drawPoint(drawA, 'A', '#ff9800', 6); drawPoint(drawB, 'B₁', '#fff', 6); 
+                drawPoint(drawC, anim.initialized ? 'Tracker' : 'C₁', '#ff5252', 6); 
+            }
+        }
+
+        function animationLoop() {
+            if (!anim.playing) return;
+            anim.angle += (anim.speedMult * anim.dir);
+            let HC = dyad1.Z0, HR = dyad2.Z0;
+            let A_next = { x: HC.x + anim.lengths.L1 * Math.cos(anim.angle), y: HC.y + anim.lengths.L1 * Math.sin(anim.angle) };
+            let intersects = circleIntersection(A_next, anim.lengths.L2, HR, anim.lengths.L3);
+            if (intersects.length === 0) {
+                anim.dir *= -1; anim.angle += (anim.speedMult * anim.dir * 2); 
+            } else {
+                let B_next = intersects[0];
+                if (intersects.length > 1) {
+                    let d1 = dist(intersects[0], anim.lastB); let d2 = dist(intersects[1], anim.lastB);
+                    if (d2 < d1) B_next = intersects[1];
+                }
+                anim.lastB = B_next; anim.A_current = A_next; anim.B_current = B_next;
+                anim.C_current = rigidTransform(R[0], C.add(dyad1.Z0, dyad1.Z2), C.add(dyad2.Z0, dyad2.Z2), A_next, B_next);
+                anim.path.push(anim.C_current);
+                if(anim.path.length > 800) anim.path.shift();
+            }
+            draw(); anim.reqId = requestAnimationFrame(animationLoop);
+        }
+
+        function resize() { 
+            if (canvas.parentElement.clientWidth === 0) return; 
+            canvas.width = canvas.parentElement.clientWidth; canvas.height = canvas.parentElement.clientHeight; 
+            width = canvas.width; height = canvas.height; draw(); 
+        }
+        window.addEventListener('resize', resize);
+
+        function updateUI() {
+            for (let i = 0; i < stepsInfo.length; i++) { let el = document.getElementById(`step-${i}_a`); if(el) el.className = `step ${i === currentStep ? 'active' : ''} ${i < currentStep ? 'done' : ''}`; }
+            let s1 = document.getElementById('step1-controls_a'); if(s1) s1.style.display = (currentStep >= 1) ? 'flex' : 'none';
+            let s2 = document.getElementById('step2-controls_a'); if(s2) s2.style.display = (currentStep >= 2) ? 'flex' : 'none';
+            let s3 = document.getElementById('step3-controls_a'); if(s3) s3.style.display = (currentStep >= 3) ? 'flex' : 'none';
+            let nxt = document.getElementById('btn-next_a'); if(nxt) nxt.style.display = (currentStep < 4) ? 'block' : 'none';
+            let apn = document.getElementById('animation-palette_a'); if(apn) apn.style.display = (currentStep >= 4) ? 'flex' : 'none';
+        }
+
+        function initUI() {
+            const container = document.getElementById('steps-container_a'); if(!container) return;
+            container.innerHTML = '';
+            stepsInfo.forEach((step, i) => {
+                let div = document.createElement('div'); div.className = `step ${i === currentStep ? 'active' : ''} ${i < currentStep ? 'done' : ''}`; div.id = `step-${i}_a`;
+                div.innerHTML = `<div class="step-title">${step.title}</div><div class="step-desc">${step.desc}</div>`; container.appendChild(div);
+            });
+            updateUI();
+        }
+
+        function stopAnimationHelper() {
+            anim.initialized = false; anim.playing = false; cancelAnimationFrame(anim.reqId);
+            let btnPlay = document.getElementById('btn-play-pause_a');
+            if (btnPlay) { btnPlay.innerText = "Play Simulation"; btnPlay.style.backgroundColor = "var(--accent-done)"; btnPlay.style.color = "#000"; }
+        }
+
+        function bindSlider(id, targetObj, targetProp, dispId, callback) {
+            let el = document.getElementById(id); let disp = document.getElementById(dispId);
+            if(el && disp) el.addEventListener('input', (e) => {
+                let v = parseInt(e.target.value); disp.innerText = v;
+                targetObj[targetProp] = v * Math.PI / 180;
+                if(callback) callback();
+            });
+        }
+        
+        bindSlider('sl-phi2_a', params.phi, 0, 'val-phi2_a', () => { recalculate(); draw(); });
+        bindSlider('sl-phi3_a', params.phi, 1, 'val-phi3_a', () => { recalculate(); draw(); });
+        bindSlider('sl-phi4_a', params.phi, 2, 'val-phi4_a', () => { recalculate(); draw(); });
+        bindSlider('sl-gam2_a', params, 'gam2_1', 'val-gam2_a', () => { stopAnimationHelper(); recalculate(); draw(); });
+        bindSlider('sl-gam2p_a', params, 'gam2_2', 'val-gam2p_a', () => { stopAnimationHelper(); recalculate(); draw(); });
+
+        let br1 = document.getElementById('btn-root1_a'); if(br1) br1.addEventListener('click', () => { params.root_1 = 1 - params.root_1; br1.innerText = `Switch to Root ${2 - params.root_1} (Current: ${params.root_1 + 1})`; stopAnimationHelper(); recalculate(); draw(); });
+        let br2 = document.getElementById('btn-root2_a'); if(br2) br2.addEventListener('click', () => { params.root_2 = 1 - params.root_2; br2.innerText = `Switch to Root ${2 - params.root_2} (Current: ${params.root_2 + 1})`; stopAnimationHelper(); recalculate(); draw(); });
+
+        let baf = document.getElementById('btn-autofit_a'); if(baf) baf.addEventListener('click', autoFit);
+
+        canvas.addEventListener('mousedown', (e) => { isPanning = true; hasMoved = false; startPan = { x: e.clientX - transform.x, y: e.clientY - transform.y }; });
+        window.addEventListener('mousemove', (e) => {
+            if (!isPanning) return;
+            let newX = e.clientX - startPan.x; let newY = e.clientY - startPan.y;
+            if (Math.abs(newX - transform.x) > 3 || Math.abs(newY - transform.y) > 3) hasMoved = true;
+            transform.x = newX; transform.y = newY; if(!anim.playing) draw();
+        });
+        window.addEventListener('mouseup', () => { isPanning = false; });
+        
+        canvas.addEventListener('wheel', (e) => {
+            e.preventDefault(); const zoomSensitivity = 0.001; const delta = -e.deltaY * zoomSensitivity;
+            const newScale = Math.min(Math.max(0.1, transform.k * Math.exp(delta)), 10);
+            const rect = canvas.getBoundingClientRect(); const mouseX = e.clientX - rect.left; const mouseY = e.clientY - rect.top;
+            transform.x = mouseX - (mouseX - transform.x) * (newScale / transform.k);
+            transform.y = mouseY - (mouseY - transform.y) * (newScale / transform.k); transform.k = newScale;
+            let zoomPct = Math.round(newScale * 100); let sld = document.getElementById('slider-zoom_a'); if(sld) sld.value = zoomPct; 
+            let vld = document.getElementById('val-zoom_a'); if(vld) vld.innerText = zoomPct;
+            if(!anim.playing) draw();
+        }, {passive: false});
+
+        canvas.addEventListener('click', (e) => {
+            if (hasMoved) return; 
+            const rect = canvas.getBoundingClientRect();
+            const pWorld = toWorld({x: e.clientX - rect.left, y: e.clientY - rect.top}); 
+            if (currentStep === 0 && R.length < 4) { R.push(pWorld); draw(); }
+        });
+
+        let sZ = document.getElementById('slider-zoom_a'); if(sZ) sZ.addEventListener('input', (e) => {
+            let zoomPct = parseInt(e.target.value); document.getElementById('val-zoom_a').innerText = zoomPct;
+            let newScale = zoomPct / 100; let centerX = width / 2; let centerY = height / 2;
+            transform.x = centerX - (centerX - transform.x) * (newScale / transform.k); transform.y = centerY - (centerY - transform.y) * (newScale / transform.k); transform.k = newScale;
+            if(!anim.playing) draw();
+        });
+        let sS = document.getElementById('slider-speed_a'); if(sS) sS.addEventListener('input', (e) => { let val = parseInt(e.target.value); document.getElementById('val-speed_a').innerText = val; anim.speedMult = val * 0.0005; });
+        
+        let ply = document.getElementById('btn-play-pause_a'); if(ply) ply.addEventListener('click', (e) => {
+            if(!dyad1 || !dyad2) return;
+            if (!anim.initialized) {
+                anim.initialized = true; anim.playing = true;
+                let HC = dyad1.Z0, A1 = C.add(dyad1.Z0, dyad1.Z2), B1 = C.add(dyad2.Z0, dyad2.Z2);
+                anim.angle = Math.atan2(A1.y - HC.y, A1.x - HC.x); anim.lastB = {x: B1.x, y: B1.y}; anim.path = []; anim.dir = 1;
+                anim.lengths = { L1: dist(HC, A1), L2: dist(A1, B1), L3: dist(dyad2.Z0, B1) };
+                animationLoop();
+            } else {
+                anim.playing = !anim.playing;
+                if (anim.playing) animationLoop(); else cancelAnimationFrame(anim.reqId);
+            }
+            e.target.innerText = anim.playing ? "Pause" : "Play Simulation";
+            e.target.style.backgroundColor = anim.playing ? "#ffb300" : "var(--accent-done)"; e.target.style.color = "#000";
+            updateUI();
+        });
+
+        let stp = document.getElementById('btn-stop-anim_a'); if(stp) stp.addEventListener('click', () => { stopAnimationHelper(); draw(); updateUI(); });
+
+        let nxt = document.getElementById('btn-next_a'); if(nxt) nxt.addEventListener('click', () => {
+            if (currentStep === 0 && R.length < 4) { alert("Please place 4 precision points on the canvas first."); return; }
+            if (currentStep < 4) {
+                currentStep++; recalculate(); updateUI(); 
+                if (currentStep > 0) autoFit(); 
+            }
+        });
+
+        let rst = document.getElementById('btn-reset_a'); if(rst) rst.addEventListener('click', () => {
+            stopAnimationHelper(); currentStep = 0; R = []; dyad1 = null; dyad2 = null;
+            fullCouplerCurve = []; circuitVisited = [false, false, false, false]; anim.path = [];
+            transform = { x: 0, y: 0, k: 1 }; 
+            let sld = document.getElementById('slider-zoom_a'); if(sld) sld.value = 100; 
+            let vld = document.getElementById('val-zoom_a'); if(vld) vld.innerText = 100;
+            updateUI(); draw();
+        });
+
+        let bck = document.getElementById('btn-back_a'); if(bck) bck.addEventListener('click', () => {
+            stopAnimationHelper();
+            if(currentStep > 0) currentStep--;
+            recalculate(); updateUI(); 
+            anim.path = [];
+            if (currentStep > 0) autoFit(); else draw();
+        });
+
+        initUI(); setTimeout(resize, 50);
+
+    } catch (err) {
+        const errBox = document.getElementById('steps-container_a');
+        if (errBox) { errBox.innerHTML = '<div style="color:#ff5252; padding:15px; font-weight:bold; word-wrap: break-word;">Engine Error:<br><br>' + err.message + '<br><br>' + err.stack + '</div>'; } 
+        else { alert("Fatal Error: " + err.message); }
+    }
+})();
+</script>
+</body>
+</html>
